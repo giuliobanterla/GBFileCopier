@@ -20,6 +20,28 @@ A free and open source file copy utility for **Windows** and **macOS**, inspired
 - Command line interface for scripts and scheduled tasks
 - Shell integration (Explorer context menu on Windows, Finder extension on macOS)
 
+## Command line
+
+```
+gbcopy copy <sources>... <destination> [options]
+gbcopy move <sources>... <destination> [options]
+gbcopy hash <files>... [--hash <algorithm>]
+```
+
+| Option | |
+|---|---|
+| `-v`, `--verify` | Read every copy back and compare its checksum with the source |
+| `--hash <algorithm>` | `none`, `crc32`, `crc64`, `xxh64`, `xxh3` (default), `xxh128`, `md5`, `sha1`, `sha256`, `sha512` |
+| `-c`, `--on-conflict <policy>` | `ask` (default when interactive), `overwrite`, `newer`, `skip` (default otherwise), `keep-both` |
+| `--retries <n>` | Attempts after a transient error (default 2) |
+| `--no-flush` | Don't force each file to disk (faster, less safe) |
+
+Each file is written to a hidden temporary name, checked, and only then renamed into place:
+an interrupted copy never leaves partial files and never damages an existing one. With `move`,
+a source is deleted only after its copy has succeeded.
+
+Exit codes: `0` success, `1` some files failed, `3` cancelled.
+
 ## Technology
 
 - .NET (C#), Native AOT
