@@ -75,8 +75,15 @@ internal static class CopyPlanner
             return;
         }
 
-        // Top-level sources follow symbolic links, like the shell does
-        if (File.Exists(sourcePath))
+        // A symbolic link is copied as a link, like the Finder and cp -R do. Checked first:
+        // File.Exists and Directory.Exists follow links, while FileInfo describes the link itself
+        // (its length is that of the target path), so the two would not match.
+        var linkTarget = GetLinkTarget(sourcePath);
+        if (linkTarget is not null)
+        {
+            plan.Files.Add(new(CopyItemKind.SymbolicLink, sourcePath, target, 0, File.GetLastWriteTimeUtc(sourcePath), linkTarget));
+        }
+        else if (File.Exists(sourcePath))
         {
             var file = new FileInfo(sourcePath);
             plan.Files.Add(new(CopyItemKind.File, sourcePath, target, file.Length, file.LastWriteTimeUtc));
@@ -137,6 +144,19 @@ internal static class CopyPlanner
             {
                 plan.Files.Add(new(CopyItemKind.File, file.FullName, entryTarget, file.Length, file.LastWriteTimeUtc));
             }
+        }
+    }
+
+    private static string? GetLinkTarget(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Attributes.HasFlag(FileAttributes.ReparsePoint) ? info.LinkTarget : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null; // missing or unreadable: reported by the checks that follow
         }
     }
 

@@ -352,6 +352,7 @@ public sealed class CopyJob
 
     private static (string? Hash, bool Verified, string? Warning) CopySymbolicLink(CopyItem item, string target, bool overwrite)
     {
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
         if (overwrite)
         {
             if (Directory.Exists(target) && (File.GetAttributes(target) & FileAttributes.ReparsePoint) == 0)

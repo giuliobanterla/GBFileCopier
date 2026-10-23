@@ -137,6 +137,22 @@ public sealed class CopyJobTests : IDisposable
         Assert.Equal("target.txt", new FileInfo(Path.Combine(Destination, "src", "link.txt")).LinkTarget);
     }
 
+    [Fact]
+    public async Task Copy_SymbolicLinkAsSource_IsCopiedAsLink()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Creating links on Windows needs developer mode or admin rights");
+        _temp.CreateFile("src/target.txt", text: "content");
+        var link = _temp.Combine("src", "link.txt");
+        File.CreateSymbolicLink(link, "target.txt");
+
+        var result = await RunAsync([link], Destination);
+
+        var file = Assert.Single(result.Files);
+        Assert.Equal(FileCopyStatus.Succeeded, file.Status);
+        Assert.Equal(CopyItemKind.SymbolicLink, file.Kind);
+        Assert.Equal("target.txt", new FileInfo(Path.Combine(Destination, "link.txt")).LinkTarget);
+    }
+
     [Theory]
     [InlineData(ConflictPolicy.Skip, "old", FileCopyStatus.Skipped)]
     [InlineData(ConflictPolicy.Overwrite, "new", FileCopyStatus.Succeeded)]
