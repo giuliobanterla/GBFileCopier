@@ -1,5 +1,7 @@
 # GBFileCopier
 
+[![CI](https://github.com/giuliobanterla/GBFileCopier/actions/workflows/ci.yml/badge.svg)](https://github.com/giuliobanterla/GBFileCopier/actions/workflows/ci.yml)
+
 A free and open source file copy utility for **Windows** and **macOS**, inspired by TeraCopy.
 
 > ⚠️ Early development — nothing usable yet.
