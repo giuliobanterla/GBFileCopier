@@ -14,12 +14,12 @@ updates:
     commit-message:
       prefix: "deps"
     groups:
+      # Avalonia packages must stay on the same version (listed first: a package goes to the first group it matches)
+      avalonia:
+        patterns: ["Avalonia*"]
       # Minor and patch updates in a single PR, major ones separately
       nuget-minor-patch:
         update-types: ["minor", "patch"]
-      # Avalonia packages must stay on the same version
-      avalonia:
-        patterns: ["Avalonia*"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
