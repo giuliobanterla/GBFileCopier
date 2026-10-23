@@ -16,7 +16,8 @@ internal sealed class TempDirectory : IDisposable
     /// <summary>Creates a file with random content (or the given text) and returns its path.</summary>
     public string CreateFile(string relativePath, int length = 1000, string? text = null)
     {
-        var path = Combine(relativePath);
+        // GetFullPath turns "/" into the native separator, as the engine does
+        var path = System.IO.Path.GetFullPath(Combine(relativePath));
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
         if (text is not null)
         {
