@@ -72,7 +72,7 @@ public sealed record CopyOptions
 
     public TimeSpan RetryDelay { get; init; } = TimeSpan.FromSeconds(1);
 
-    /// <summary>Size of each block read and written.</summary>
+    /// <summary>Size of each block read and written, a multiple of 4096 bytes.</summary>
     public int BufferSize { get; init; } = 1024 * 1024;
 
     /// <summary>Blocks that can be in flight between the reader and the writer.</summary>
@@ -84,7 +84,12 @@ public sealed record CopyOptions
 
     internal void Validate()
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(BufferSize, 4096, nameof(BufferSize));
+        ArgumentOutOfRangeException.ThrowIfLessThan(BufferSize, FilePipeline.Alignment, nameof(BufferSize));
+        if (BufferSize % FilePipeline.Alignment != 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(BufferSize), BufferSize, $"Must be a multiple of {FilePipeline.Alignment}");
+        }
+
         ArgumentOutOfRangeException.ThrowIfLessThan(BufferCount, 1, nameof(BufferCount));
         ArgumentOutOfRangeException.ThrowIfNegative(RetryCount, nameof(RetryCount));
         ArgumentOutOfRangeException.ThrowIfLessThan(RetryDelay, TimeSpan.Zero, nameof(RetryDelay));

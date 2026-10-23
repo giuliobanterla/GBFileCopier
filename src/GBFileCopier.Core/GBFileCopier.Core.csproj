@@ -2,6 +2,10 @@
 
   <!-- Copy engine: queue, copy + hash pipeline, conflicts, retry, verification. No UI. -->
 
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="System.IO.Hashing" />
   </ItemGroup>

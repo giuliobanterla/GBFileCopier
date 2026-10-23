@@ -40,6 +40,14 @@ Each file is written to a hidden temporary name, checked, and only then renamed 
 an interrupted copy never leaves partial files and never damages an existing one. With `move`,
 a source is deleted only after its copy has succeeded.
 
+On Windows and macOS, native APIs make the safety checks real:
+
+- **Verification reads from the disk**, not from the memory cache that still holds the data just
+  written (`FILE_FLAG_NO_BUFFERING` on Windows; cache eviction plus `F_NOCACHE` on macOS).
+- **Flushing reaches permanent storage** (`FlushFileBuffers`; `F_FULLFSYNC` on macOS, which also
+  empties the drive's own cache).
+- **Moves on the same volume are instant renames**; across volumes they become copy, verify, delete.
+
 Exit codes: `0` success, `1` some files failed, `3` cancelled.
 
 ## Technology

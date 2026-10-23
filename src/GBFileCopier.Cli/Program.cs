@@ -55,6 +55,7 @@ infoCommand.SetAction(_ =>
 {
     Console.WriteLine($"{AppInfo.Name} {AppInfo.Version}");
     Console.WriteLine(PlatformInfo.Description);
+    Console.WriteLine($"File system: {PlatformFileSystem.Current.Name}");
 });
 rootCommand.Subcommands.Add(infoCommand);
 
@@ -91,7 +92,7 @@ async Task<int> RunTransferAsync(ParseResult parseResult, CopyMode mode, Cancell
         },
     };
 
-    var result = await new CopyJob(request).RunAsync(ui, ui.ResolveConflictAsync, cancellationToken);
+    var result = await new CopyJob(request, PlatformFileSystem.Current).RunAsync(ui, ui.ResolveConflictAsync, cancellationToken);
     PrintSummary(ui, result);
 
     return result.WasCancelled ? ExitCancelled
@@ -113,11 +114,13 @@ static void PrintSummary(ConsoleUi ui, CopyJobResult result)
 
     var verb = result.Mode == CopyMode.Move ? "moved" : "copied";
     var verified = result.Files.Count(f => f.Verified);
+    var renamed = result.Files.Count(f => f.Renamed);
     var speed = result.Elapsed.TotalSeconds > 0 ? result.CopiedBytes / result.Elapsed.TotalSeconds : 0;
 
     ui.WriteLine(string.Empty);
     ui.WriteLine(
         $"{result.SucceededCount} {verb} ({ByteSize.Format(result.CopiedBytes)}), " +
+        (renamed > 0 ? $"{renamed} renamed in place, " : string.Empty) +
         $"{verified} verified, {result.SkippedCount} skipped, {result.FailedCount} failed" +
         (result.CancelledCount > 0 ? $", {result.CancelledCount} not processed" : string.Empty));
     ui.WriteLine($"Time {result.Elapsed:hh\\:mm\\:ss}, {ByteSize.Format(speed)}/s, checksum {HashAlgorithmNames.GetName(result.HashAlgorithm)}");
@@ -152,7 +155,7 @@ Command CreateHashCommand()
         {
             try
             {
-                var hash = await FileHasher.HashFileAsync(file, algorithm, cancellationToken);
+                var hash = await FileHasher.HashFileAsync(file, algorithm, PlatformFileSystem.Current, cancellationToken);
                 Console.WriteLine($"{StreamingHasher.ToHex(hash)}  {file}");
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

@@ -37,6 +37,9 @@ public sealed record FileCopyResult
     /// <summary>The destination was read back and matched the source.</summary>
     public bool Verified { get; init; }
 
+    /// <summary>Moved by renaming it on the same volume: the data was not copied.</summary>
+    public bool Renamed { get; init; }
+
     /// <summary>Why the file failed or was skipped.</summary>
     public string? Error { get; init; }
 
