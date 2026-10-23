@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GBFileCopier.App/GBFileCopier.App.csproj" />
+    <Project Path="src/GBFileCopier.Cli/GBFileCopier.Cli.csproj" />
+    <Project Path="src/GBFileCopier.Core/GBFileCopier.Core.csproj" />
+    <Project Path="src/GBFileCopier.Platform/GBFileCopier.Platform.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GBFileCopier.Core.Tests/GBFileCopier.Core.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Copy engine: queue, copy + hash pipeline, conflicts, retry, verification. No UI. -->
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Hashing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GBFileCopier.Core.Tests" />
+  </ItemGroup>
+
+</Project>

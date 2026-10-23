@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>gbcopy</AssemblyName>
+    <RootNamespace>GBFileCopier.Cli</RootNamespace>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GBFileCopier.Core\GBFileCopier.Core.csproj" />
+    <ProjectReference Include="..\GBFileCopier.Platform\GBFileCopier.Platform.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -24,6 +24,33 @@ A free and open source file copy utility for **Windows** and **macOS**, inspired
 - [Avalonia UI](https://avaloniaui.net/) for the cross-platform interface
 - Native components for shell integration (Swift for the Finder extension)
 
+## Repository layout
+
+```
+src/GBFileCopier.Core       copy engine: queue, copy + hash pipeline, conflicts, retry, verification (no UI)
+src/GBFileCopier.Platform   native APIs for Windows and macOS
+src/GBFileCopier.Cli        command line tool (gbcopy)
+src/GBFileCopier.App        desktop app (Avalonia)
+tests/                      unit tests (xUnit v3)
+```
+
+## Building
+
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
+
+```
+dotnet build
+dotnet test
+dotnet run --project src/GBFileCopier.Cli -- --help
+dotnet run --project src/GBFileCopier.App
+```
+
+Native AOT build of the CLI (single executable, no runtime required):
+
+```
+dotnet publish src/GBFileCopier.Cli -c Release
+```
+
 ## License
 
 Copyright (C) 2026 Giulio Banterla

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Native APIs: CopyFileEx and unbuffered I/O on Windows, copyfile/clonefile and xattrs on macOS -->
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GBFileCopier.Core\GBFileCopier.Core.csproj" />
+  </ItemGroup>
+
+</Project>
