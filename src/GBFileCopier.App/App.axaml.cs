@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using GBFileCopier.App.Resources;
 using GBFileCopier.App.Services;
 using GBFileCopier.App.Settings;
@@ -21,10 +22,26 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
+    /// <summary>Switches the theme of every open window at once, no restart needed.</summary>
+    public static void ApplyTheme(ThemeChoice theme)
+    {
+        if (Current is { } app)
+        {
+            app.RequestedThemeVariant = theme switch
+            {
+                ThemeChoice.Light => ThemeVariant.Light,
+                ThemeChoice.Dark => ThemeVariant.Dark,
+                _ => ThemeVariant.Default, // follows the system
+            };
+        }
+    }
+
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            ApplyTheme(SettingsStore.Load().Theme);
+
             var window = new MainWindow();
             var viewModel = new MainViewModel(new WindowUiServices(window), SettingsStore);
             // Files and folders passed on the command line (and later by the shell integration)

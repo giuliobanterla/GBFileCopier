@@ -7,17 +7,28 @@ namespace GBFileCopier.App.ViewModels;
 
 public sealed record LanguageOption(string Code, string Label);
 
+public sealed record ThemeOption(ThemeChoice Theme, string Label);
+
 public sealed partial class SettingsViewModel : ViewModelBase
 {
     private readonly ISettingsStore _store;
     private readonly string _initialLanguage;
+    private readonly Action<ThemeChoice> _applyTheme;
+    private readonly bool _initialized;
 
-    public SettingsViewModel(ISettingsStore store, string? location = null)
+    /// <param name="store">Where the choices are saved.</param>
+    /// <param name="location">Settings file path, shown to the user.</param>
+    /// <param name="applyTheme">Switches the theme right away; App.ApplyTheme in the app.</param>
+    public SettingsViewModel(ISettingsStore store, string? location = null, Action<ThemeChoice>? applyTheme = null)
     {
         _store = store;
-        _initialLanguage = store.Load().Language;
+        _applyTheme = applyTheme ?? (_ => { });
+        var settings = store.Load();
+        _initialLanguage = settings.Language;
         SelectedLanguage = Languages.FirstOrDefault(l => l.Code == _initialLanguage) ?? Languages[0];
+        SelectedTheme = Themes.FirstOrDefault(t => t.Theme == settings.Theme) ?? Themes[0];
         Location = location is null ? null : string.Format(CultureInfo.CurrentCulture, Strings.SettingsLocation, location);
+        _initialized = true; // from now on, changes are the user's: save them
     }
 
     /// <summary>Language names are written in their own language, as usual in language menus.</summary>
@@ -32,6 +43,16 @@ public sealed partial class SettingsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(NeedsRestart))]
     public partial LanguageOption SelectedLanguage { get; set; }
 
+    public IReadOnlyList<ThemeOption> Themes { get; } =
+    [
+        new(ThemeChoice.System, Strings.ThemeSystem),
+        new(ThemeChoice.Light, Strings.ThemeLight),
+        new(ThemeChoice.Dark, Strings.ThemeDark),
+    ];
+
+    [ObservableProperty]
+    public partial ThemeOption SelectedTheme { get; set; }
+
     /// <summary>The texts are read when the windows are created: a new language needs a restart.</summary>
     public bool NeedsRestart => SelectedLanguage.Code != _initialLanguage;
 
@@ -39,6 +60,22 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     partial void OnSelectedLanguageChanged(LanguageOption value)
     {
+        if (!_initialized)
+        {
+            return;
+        }
+
         _store.Save(_store.Load() with { Language = value.Code });
+    }
+
+    partial void OnSelectedThemeChanged(ThemeOption value)
+    {
+        if (!_initialized)
+        {
+            return;
+        }
+
+        _store.Save(_store.Load() with { Theme = value.Theme });
+        _applyTheme(value.Theme);
     }
 }

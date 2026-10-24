@@ -4,11 +4,21 @@ using GBFileCopier.Core.Hashing;
 
 namespace GBFileCopier.App.Settings;
 
+public enum ThemeChoice
+{
+    /// <summary>Follow the light or dark appearance of the system, also when it changes.</summary>
+    System,
+    Light,
+    Dark,
+}
+
 /// <summary>What the app remembers between runs.</summary>
 public sealed record AppSettings
 {
     /// <summary>Interface language ("en", "it"); empty to follow the system.</summary>
     public string Language { get; init; } = string.Empty;
+
+    public ThemeChoice Theme { get; init; } = ThemeChoice.System;
 
     public string LastDestination { get; init; } = string.Empty;
 

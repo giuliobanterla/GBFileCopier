@@ -71,24 +71,37 @@ public sealed class ScreenshotTests : IDisposable
     [AvaloniaFact]
     public void ConflictWindow() => RenderConflictWindow("conflict.png");
 
-    private static void RenderConflictWindow(string fileName)
+    [AvaloniaFact]
+    public void ConflictWindow_Dark()
     {
-        SetTheme("Light");
+        SetTheme("Dark");
+        RenderConflictWindow("conflict-dark.png", theme: null);
+    }
+
+    private static void RenderConflictWindow(string fileName, string? theme = "Light")
+    {
+        if (theme is not null)
+        {
+            SetTheme(theme);
+        }
+
         var now = DateTime.UtcNow;
         var conflict = new FileConflict(
             "/Users/me/Photos/IMG_0001.jpg", "/Volumes/Backup/Photos/IMG_0001.jpg", 3_400_000, now, 3_100_000, now.AddDays(-3));
         Save(new ConflictWindow { DataContext = new ConflictViewModel(conflict) }, fileName);
     }
 
-    [AvaloniaFact]
-    public void SettingsAndAboutWindows()
+    [AvaloniaTheory]
+    [InlineData("Light")]
+    [InlineData("Dark")]
+    public void SettingsAndAboutWindows(string theme)
     {
-        SetTheme("Light");
+        SetTheme(theme);
         var store = new FakeSettingsStore { Saved = new() { Language = "it" } };
         var settings = new SettingsViewModel(store, "/Users/me/Library/Application Support/GBFileCopier/settings.json");
         settings.SelectedLanguage = settings.Languages[0]; // changed: shows the restart note
-        Save(new SettingsWindow { DataContext = settings }, "settings.png");
-        Save(new AboutWindow(), "about.png");
+        Save(new SettingsWindow { DataContext = settings }, $"settings-{theme.ToLowerInvariant()}.png");
+        Save(new AboutWindow(), $"about-{theme.ToLowerInvariant()}.png");
     }
 
     private static void SetTheme(string theme) =>
