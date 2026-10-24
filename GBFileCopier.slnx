@@ -6,6 +6,7 @@
     <Project Path="src/GBFileCopier.Platform/GBFileCopier.Platform.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/GBFileCopier.App.Tests/GBFileCopier.App.Tests.csproj" />
     <Project Path="tests/GBFileCopier.Core.Tests/GBFileCopier.Core.Tests.csproj" />
     <Project Path="tests/GBFileCopier.Platform.Tests/GBFileCopier.Platform.Tests.csproj" />
   </Folder>

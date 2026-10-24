@@ -1,10 +1,57 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="GBFileCopier.App.App"
+             Name="GBFileCopier"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
-    <Application.Styles>
-        <FluentTheme />
-    </Application.Styles>
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="PanelBrush" Color="#F4F5F7" />
+          <SolidColorBrush x:Key="DropBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="SubtleTextBrush" Color="#6B7280" />
+          <SolidColorBrush x:Key="ErrorBrush" Color="#C0262D" />
+          <SolidColorBrush x:Key="WarningBrush" Color="#B45309" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#15803D" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="PanelBrush" Color="#202227" />
+          <SolidColorBrush x:Key="DropBrush" Color="#16171B" />
+          <SolidColorBrush x:Key="SubtleTextBrush" Color="#9CA3AF" />
+          <SolidColorBrush x:Key="ErrorBrush" Color="#F87171" />
+          <SolidColorBrush x:Key="WarningBrush" Color="#FBBF24" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#4ADE80" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+
+      <StreamGeometry x:Key="FileIcon">M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5L13 3.5z</StreamGeometry>
+      <StreamGeometry x:Key="FolderIcon">M3 5a2 2 0 0 1 2-2h4.6l2 2H19a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5z</StreamGeometry>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+
+    <Style Selector="TextBlock.subtle">
+      <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock.section">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.status-failed">
+      <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+    </Style>
+    <Style Selector="TextBlock.status-warning">
+      <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+    </Style>
+    <Style Selector="TextBlock.status-ok">
+      <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="MinWidth" Value="96" />
+    </Style>
+  </Application.Styles>
 </Application>

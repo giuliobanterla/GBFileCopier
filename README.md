@@ -20,6 +20,16 @@ A free and open source file copy utility for **Windows** and **macOS**, inspired
 - Command line interface for scripts and scheduled tasks
 - Shell integration (Explorer context menu on Windows, Finder extension on macOS)
 
+## Desktop app
+
+`GBFileCopier` (Windows and macOS): drop files and folders in the window, or paste them with
+⌘V / Ctrl+V after copying them in the Finder or Explorer (⌥⌘V, or a cut in Explorer, makes Move
+the default action). Choose the destination, then Copy or Move. While copying you can pause and
+cancel; at the end the results list shows what failed or was skipped, and why. When a file already
+exists you can replace it, skip it or keep both, also for all the following conflicts.
+
+Files and folders passed on the command line are added to the list.
+
 ## Command line
 
 ```
@@ -74,7 +84,7 @@ src/GBFileCopier.Core       copy engine: queue, copy + hash pipeline, conflicts,
 src/GBFileCopier.Platform   native APIs for Windows and macOS
 src/GBFileCopier.Cli        command line tool (gbcopy)
 src/GBFileCopier.App        desktop app (Avalonia)
-tests/                      unit tests (xUnit v3)
+tests/                      unit tests (xUnit v3); the App tests also render the windows to PNG
 ```
 
 ## Building

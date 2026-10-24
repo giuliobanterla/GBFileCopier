@@ -3,20 +3,130 @@
         xmlns:vm="using:GBFileCopier.App.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="820" d:DesignHeight="640"
         x:Class="GBFileCopier.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="{Binding Title}">
+        Title="{Binding Title}"
+        Width="820" Height="640" MinWidth="600" MinHeight="480">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainViewModel />
-    </Design.DataContext>
+  <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" Margin="16" RowSpacing="12">
 
-    <TextBlock Text="{Binding Status}"
-               HorizontalAlignment="Center"
-               VerticalAlignment="Center" />
+    <!-- Sources toolbar -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+      <TextBlock Classes="section" Text="Files and folders" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" IsEnabled="{Binding IsIdle}">
+        <Button Content="Add files…" Command="{Binding AddFilesCommand}" />
+        <Button Content="Add folder…" Command="{Binding AddFolderCommand}" />
+        <Button Content="Paste" Command="{Binding PasteCommand}" CommandParameter="{x:False}"
+                ToolTip.Tip="Paste the files copied in the Finder or Explorer (⌘V / Ctrl+V). ⌥⌘V pastes them to move." />
+        <Button Content="Remove" Command="{Binding RemoveSelectedCommand}" />
+        <Button Content="Clear" Command="{Binding ClearSourcesCommand}" />
+      </StackPanel>
+    </Grid>
 
+    <!-- Sources list, also a drop target -->
+    <Border Grid.Row="1" x:Name="SourcesDropArea" DragDrop.AllowDrop="True"
+            Background="{DynamicResource DropBrush}" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+            BorderThickness="1" CornerRadius="6">
+      <Panel>
+        <ListBox x:Name="SourcesList" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}"
+                 Background="Transparent" IsVisible="{Binding HasSources}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:SourceItem">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <PathIcon Width="16" Height="16" Data="{StaticResource FolderIcon}" IsVisible="{Binding IsFolder}" />
+                <PathIcon Width="16" Height="16" Data="{StaticResource FileIcon}" IsVisible="{Binding !IsFolder}" />
+                <StackPanel Grid.Column="1">
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="subtle" Text="{Binding Folder}" TextTrimming="PathSegmentEllipsis" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Classes="subtle" Text="{Binding Details}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <StackPanel IsVisible="{Binding !HasSources}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+          <PathIcon Width="40" Height="40" Data="{StaticResource FolderIcon}" Foreground="{DynamicResource SubtleTextBrush}" />
+          <TextBlock Text="Drop files and folders here" HorizontalAlignment="Center" FontSize="15" />
+          <TextBlock Classes="subtle" HorizontalAlignment="Center"
+                     Text="or paste what you copied in the Finder / Explorer with ⌘V / Ctrl+V" />
+        </StackPanel>
+      </Panel>
+    </Border>
+
+    <!-- Destination and options -->
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="10"
+          IsEnabled="{Binding IsIdle}">
+      <TextBlock Classes="section" Text="Destination" />
+      <TextBox Grid.Column="1" x:Name="DestinationBox" DragDrop.AllowDrop="True" Text="{Binding Destination}"
+               PlaceholderText="Folder where the files go (you can also drop it here)" />
+      <Button Grid.Column="2" Content="Browse…" Command="{Binding BrowseDestinationCommand}" />
+
+      <WrapPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" ItemSpacing="16" LineSpacing="8">
+        <CheckBox Content="Verify after copying" IsChecked="{Binding Verify}"
+                  ToolTip.Tip="Read every copy back from the disk and compare its checksum with the original" />
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="Checksum" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding HashOptions}" SelectedItem="{Binding SelectedHash}" MinWidth="150">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:HashOption">
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="If a file exists" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding ConflictOptions}" SelectedItem="{Binding SelectedConflict}" MinWidth="150">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ConflictOption">
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+      </WrapPanel>
+    </Grid>
+
+    <!-- Progress and actions -->
+    <Border Grid.Row="3" Background="{DynamicResource PanelBrush}" CornerRadius="6" Padding="12">
+      <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="6" ColumnSpacing="12">
+        <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="1" Grid.RowSpan="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Content="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}" IsVisible="{Binding IsRunning}" />
+          <Button Content="Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding IsRunning}" />
+          <Button Classes="primary" Content="Move" Command="{Binding MoveCommand}" IsVisible="{Binding IsIdle}"
+                  IsDefault="{Binding PreferMove}" Classes.accent="{Binding PreferMove}" />
+          <Button Classes="primary" Content="Copy" Command="{Binding CopyCommand}" IsVisible="{Binding IsIdle}"
+                  IsDefault="{Binding !PreferMove}" Classes.accent="{Binding !PreferMove}" />
+        </StackPanel>
+        <ProgressBar Grid.Row="1" Value="{Binding ProgressPercent}" Maximum="100" IsVisible="{Binding HasRun}" />
+        <TextBlock Grid.Row="2" Classes="subtle" Text="{Binding DetailText}" IsVisible="{Binding IsRunning}" />
+        <TextBlock Grid.Row="2" Classes="subtle" Text="{Binding Summary}" IsVisible="{Binding !IsRunning}" />
+      </Grid>
+    </Border>
+
+    <!-- Results -->
+    <Grid Grid.Row="4" RowDefinitions="Auto,Auto" RowSpacing="6" IsVisible="{Binding HasRun}">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Classes="section" Text="Results" />
+        <CheckBox Grid.Column="1" Content="Show all files" IsChecked="{Binding ShowAllResults}" />
+      </Grid>
+      <ListBox Grid.Row="1" ItemsSource="{Binding Results}" Height="150">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ResultItem">
+            <Grid ColumnDefinitions="110,Auto,*" ColumnSpacing="10" ToolTip.Tip="{Binding SourcePath}">
+              <TextBlock Text="{Binding Status}" FontWeight="SemiBold"
+                         Classes.status-failed="{Binding IsFailed}" Classes.status-warning="{Binding IsWarning}"
+                         Classes.status-ok="{Binding !IsProblem}" />
+              <TextBlock Grid.Column="1" Text="{Binding Name}" />
+              <TextBlock Grid.Column="2" Classes="subtle" Text="{Binding Message}" TextTrimming="CharacterEllipsis"
+                         VerticalAlignment="Center" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+  </Grid>
 </Window>
