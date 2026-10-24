@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GBFileCopier.App.ViewModels"
+        xmlns:res="using:GBFileCopier.App.Resources"
+        x:Class="GBFileCopier.App.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="{x:Static res:Strings.SettingsTitle}"
+        Width="460" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+
+  <StackPanel Margin="20" Spacing="14">
+    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+      <TextBlock Text="{x:Static res:Strings.Language}" VerticalAlignment="Center" />
+      <ComboBox Grid.Column="1" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:LanguageOption">
+            <TextBlock Text="{Binding Label}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+    </Grid>
+
+    <TextBlock Classes="subtle" Text="{x:Static res:Strings.LanguageRestart}" TextWrapping="Wrap" IsVisible="{Binding NeedsRestart}" />
+    <TextBlock Classes="subtle" Text="{Binding Location}" TextWrapping="Wrap" IsVisible="{Binding Location, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+    <Button Classes="accent" Content="{x:Static res:Strings.Close}" HorizontalAlignment="Right" IsDefault="True" IsCancel="True"
+            Click="OnClose" />
+  </StackPanel>
+</Window>

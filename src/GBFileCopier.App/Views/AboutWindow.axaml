@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:GBFileCopier.App.Resources"
+        x:Class="GBFileCopier.App.Views.AboutWindow"
+        Title="{x:Static res:Strings.AboutTitle}"
+        Width="400" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+
+  <StackPanel Margin="24" Spacing="10" HorizontalAlignment="Center">
+    <Image Source="/Assets/icon-256.png" Width="96" Height="96" />
+    <TextBlock Text="GBFileCopier" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
+    <TextBlock x:Name="VersionText" Classes="subtle" HorizontalAlignment="Center" />
+    <TextBlock Text="{x:Static res:Strings.AboutDescription}" TextWrapping="Wrap" TextAlignment="Center" />
+    <TextBlock Classes="subtle" Text="{x:Static res:Strings.AboutLicense}" TextWrapping="Wrap" TextAlignment="Center" />
+    <TextBlock Classes="subtle" Text="Copyright © 2026 Giulio Banterla" HorizontalAlignment="Center" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,6,0,0">
+      <Button Content="{x:Static res:Strings.MenuWebsite}" Click="OnWebsite" />
+      <Button Classes="accent" Content="{x:Static res:Strings.Close}" IsDefault="True" IsCancel="True" Click="OnClose" />
+    </StackPanel>
+  </StackPanel>
+</Window>

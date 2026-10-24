@@ -11,7 +11,7 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        UiLanguage.Apply(UiLanguage.GetPreferred());
+        UiLanguage.Apply(UiLanguage.GetPreferred(App.SettingsStore.Load().Language));
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

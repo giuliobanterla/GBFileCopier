@@ -7,9 +7,13 @@
         mc:Ignorable="d" d:DesignWidth="820" d:DesignHeight="640"
         x:Class="GBFileCopier.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/icon.ico"
         Title="{Binding Title}"
         Width="820" Height="640" MinWidth="600" MinHeight="480">
+
+  <DockPanel>
+  <!-- The menu bar inside the window on Windows and Linux; on macOS the menu is in the system menu bar -->
+  <NativeMenuBar DockPanel.Dock="Top" />
 
   <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" Margin="16" RowSpacing="12">
 
@@ -130,4 +134,5 @@
       </ListBox>
     </Grid>
   </Grid>
+  </DockPanel>
 </Window>

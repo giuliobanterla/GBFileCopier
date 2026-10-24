@@ -15,14 +15,14 @@ public sealed class LocalizationTests : IDisposable
 
     [Fact]
     public void Italian_IsComplete() =>
-        ResourceAssertions.AssertComplete(typeof(Strings), Strings.ResourceManager, "it", nameof(Strings.Checksum));
+        ResourceAssertions.AssertComplete(typeof(Strings), Strings.ResourceManager, "it", nameof(Strings.Checksum), nameof(Strings.MenuFile));
 
     [AvaloniaFact]
     public async Task ViewModel_SpeaksItalian()
     {
         using var italian = EnglishCulture.Use("it");
         var ui = new FakeUiServices { Clipboard = new ClipboardFiles([_temp.CreateFile("a.txt"), _temp.Combine("mancante.txt")], IsCut: true) };
-        var viewModel = new MainViewModel(ui);
+        var viewModel = new MainViewModel(ui, new FakeSettingsStore());
 
         viewModel.Paste(move: false);
         Assert.Equal("Elementi incollati: 2. Scegli la destinazione, poi Sposta", viewModel.StatusText);
