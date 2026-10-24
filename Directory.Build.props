@@ -16,8 +16,8 @@
     <Copyright>Copyright (C) 2026 Giulio Banterla</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/giuliobanterla/GBFileCopier</RepositoryUrl>
-    <!-- Version of local and CI builds. Releases take theirs from the tag (v0.2.0): keep this equal to the latest release -->
-    <VersionPrefix>0.2.0</VersionPrefix>
+    <!-- Version of local and CI builds. Releases take theirs from the tag (v0.3.0): keep this equal to the latest release -->
+    <VersionPrefix>0.3.0</VersionPrefix>
   </PropertyGroup>
 
   <!-- Libraries and executables under src/ must stay Native AOT compatible -->
