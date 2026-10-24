@@ -243,6 +243,60 @@ public static class Strings
     /// <summary>Keep both</summary>
     public static string ConflictKeepBoth => Get();
 
+    /// <summary>File</summary>
+    public static string MenuFile => Get();
+
+    /// <summary>Help</summary>
+    public static string MenuHelp => Get();
+
+    /// <summary>Paste Files</summary>
+    public static string MenuPasteFiles => Get();
+
+    /// <summary>Paste Files to Move</summary>
+    public static string MenuPasteFilesToMove => Get();
+
+    /// <summary>Settings…</summary>
+    public static string MenuSettings => Get();
+
+    /// <summary>Exit</summary>
+    public static string MenuExit => Get();
+
+    /// <summary>About GBFileCopier</summary>
+    public static string MenuAbout => Get();
+
+    /// <summary>GBFileCopier on GitHub</summary>
+    public static string MenuWebsite => Get();
+
+    /// <summary>Settings</summary>
+    public static string SettingsTitle => Get();
+
+    /// <summary>Language</summary>
+    public static string Language => Get();
+
+    /// <summary>Same as the system</summary>
+    public static string LanguageSystem => Get();
+
+    /// <summary>The new language is used the next time you open GBFileCopier.</summary>
+    public static string LanguageRestart => Get();
+
+    /// <summary>Settings are saved in {0}</summary>
+    public static string SettingsLocation => Get();
+
+    /// <summary>Close</summary>
+    public static string Close => Get();
+
+    /// <summary>About GBFileCopier</summary>
+    public static string AboutTitle => Get();
+
+    /// <summary>Copy and move files with integrity verification.</summary>
+    public static string AboutDescription => Get();
+
+    /// <summary>Version {0}</summary>
+    public static string AboutVersion => Get();
+
+    /// <summary>Free software released under the GNU General Public License, version 3 or later.</summary>
+    public static string AboutLicense => Get();
+
     private static string Get([CallerMemberName] string name = "") =>
         Resources.GetString(name, CultureInfo.CurrentUICulture) ?? name;
 }

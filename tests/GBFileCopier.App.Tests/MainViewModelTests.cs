@@ -11,10 +11,11 @@ public sealed class MainViewModelTests : IDisposable
 {
     private readonly TempDirectory _temp = new();
     private readonly FakeUiServices _ui = new();
+    private readonly FakeSettingsStore _settings = new();
 
     public void Dispose() => _temp.Dispose();
 
-    private MainViewModel CreateViewModel() => new(_ui);
+    private MainViewModel CreateViewModel() => new(_ui, _settings);
 
     [AvaloniaFact]
     public void Paste_AddsTheClipboardFiles()

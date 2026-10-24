@@ -232,4 +232,58 @@
   <data name="ConflictKeepBoth" xml:space="preserve">
     <value>Keep both</value>
   </data>
+  <data name="MenuFile" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="MenuHelp" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="MenuPasteFiles" xml:space="preserve">
+    <value>Paste Files</value>
+  </data>
+  <data name="MenuPasteFilesToMove" xml:space="preserve">
+    <value>Paste Files to Move</value>
+  </data>
+  <data name="MenuSettings" xml:space="preserve">
+    <value>Settings…</value>
+  </data>
+  <data name="MenuExit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="MenuAbout" xml:space="preserve">
+    <value>About GBFileCopier</value>
+  </data>
+  <data name="MenuWebsite" xml:space="preserve">
+    <value>GBFileCopier on GitHub</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="LanguageSystem" xml:space="preserve">
+    <value>Same as the system</value>
+  </data>
+  <data name="LanguageRestart" xml:space="preserve">
+    <value>The new language is used the next time you open GBFileCopier.</value>
+  </data>
+  <data name="SettingsLocation" xml:space="preserve">
+    <value>Settings are saved in {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>About GBFileCopier</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>Copy and move files with integrity verification.</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="AboutLicense" xml:space="preserve">
+    <value>Free software released under the GNU General Public License, version 3 or later.</value>
+  </data>
 </root>

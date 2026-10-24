@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GBFileCopier.App.Resources;
 using GBFileCopier.App.Services;
+using GBFileCopier.App.Settings;
 using GBFileCopier.Core;
 using GBFileCopier.Core.Copying;
 
@@ -13,17 +14,25 @@ namespace GBFileCopier.App.ViewModels;
 public sealed partial class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly IUiServices _ui;
+    private readonly ISettingsStore _settingsStore;
+    private AppSettings _settings;
     private readonly List<ResultItem> _allResults = [];
     private CopyJob? _job;
     private CancellationTokenSource? _cancellation;
     private ConflictAction? _conflictAnswerForAll;
     private bool _sourcesFromCut;
 
-    public MainViewModel(IUiServices ui)
+    public MainViewModel(IUiServices ui, ISettingsStore settingsStore)
     {
         _ui = ui;
-        SelectedHash = HashOptions[0];
-        SelectedConflict = ConflictOptions[0];
+        _settingsStore = settingsStore;
+
+        // The options of the last run
+        _settings = settingsStore.Load();
+        Destination = _settings.LastDestination;
+        Verify = _settings.Verify;
+        SelectedHash = HashOptions.FirstOrDefault(o => o.Kind == _settings.HashAlgorithm) ?? HashOptions[0];
+        SelectedConflict = ConflictOptions.FirstOrDefault(o => o.Policy == _settings.ConflictPolicy) ?? ConflictOptions[0];
         Sources.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasSources));
@@ -104,7 +113,26 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>The running job, so that the window can wait for it before closing.</summary>
     public Task? RunningTask { get; private set; }
 
+    /// <summary>Saved settings, for example the window size to restore.</summary>
+    public AppSettings Settings => _settings;
+
     public void Dispose() => _cancellation?.Dispose();
+
+    /// <summary>Remembers the current options (and the window size, when closing).</summary>
+    public void SaveSettings(double? windowWidth = null, double? windowHeight = null)
+    {
+        // Reload first: the language may have been changed in the Settings window meanwhile
+        _settings = _settingsStore.Load() with
+        {
+            LastDestination = Destination.Trim(),
+            Verify = Verify,
+            HashAlgorithm = SelectedHash.Kind,
+            ConflictPolicy = SelectedConflict.Policy,
+            WindowWidth = windowWidth ?? _settings.WindowWidth,
+            WindowHeight = windowHeight ?? _settings.WindowHeight,
+        };
+        _settingsStore.Save(_settings);
+    }
 
     partial void OnShowAllResultsChanged(bool value) => RefreshResults();
 
@@ -241,6 +269,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             },
         };
 
+        SaveSettings();
         _allResults.Clear();
         Results.Clear();
         Summary = null;

@@ -32,7 +32,7 @@ public sealed class ScreenshotTests : IDisposable
     private async Task RenderMainWindowAsync(string theme, string fileName)
     {
         SetTheme(theme);
-        var viewModel = new MainViewModel(new FakeUiServices());
+        var viewModel = new MainViewModel(new FakeUiServices(), new FakeSettingsStore());
         viewModel.AddSources(
         [
             _temp.CreateFile("Photos/IMG_0001.jpg", 300_000),
@@ -65,7 +65,7 @@ public sealed class ScreenshotTests : IDisposable
     public void MainWindow_Empty()
     {
         SetTheme("Light");
-        Save(new MainWindow { DataContext = new MainViewModel(new FakeUiServices()) }, "main-empty.png");
+        Save(new MainWindow { DataContext = new MainViewModel(new FakeUiServices(), new FakeSettingsStore()) }, "main-empty.png");
     }
 
     [AvaloniaFact]
@@ -78,6 +78,17 @@ public sealed class ScreenshotTests : IDisposable
         var conflict = new FileConflict(
             "/Users/me/Photos/IMG_0001.jpg", "/Volumes/Backup/Photos/IMG_0001.jpg", 3_400_000, now, 3_100_000, now.AddDays(-3));
         Save(new ConflictWindow { DataContext = new ConflictViewModel(conflict) }, fileName);
+    }
+
+    [AvaloniaFact]
+    public void SettingsAndAboutWindows()
+    {
+        SetTheme("Light");
+        var store = new FakeSettingsStore { Saved = new() { Language = "it" } };
+        var settings = new SettingsViewModel(store, "/Users/me/Library/Application Support/GBFileCopier/settings.json");
+        settings.SelectedLanguage = settings.Languages[0]; // changed: shows the restart note
+        Save(new SettingsWindow { DataContext = settings }, "settings.png");
+        Save(new AboutWindow(), "about.png");
     }
 
     private static void SetTheme(string theme) =>

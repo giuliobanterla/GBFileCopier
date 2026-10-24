@@ -13,13 +13,20 @@ public static partial class UiLanguage
     private const uint kCFStringEncodingUTF8 = 0x08000100;
 
     /// <summary>
-    /// The preferred UI culture. On macOS .NET derives CurrentUICulture from the region format
+    /// The UI culture: the override variable, then the language chosen in the settings, then the
+    /// system one. On macOS .NET derives CurrentUICulture from the region format
     /// (English with Italian region gives it-IT), so the first preferred language of the system
     /// settings is read instead. Elsewhere CurrentUICulture already is the UI language.
     /// </summary>
-    public static CultureInfo GetPreferred()
+    /// <param name="configured">Language chosen in the app settings; empty to follow the system.</param>
+    public static CultureInfo GetPreferred(string? configured = null)
     {
         var name = Environment.GetEnvironmentVariable(OverrideVariable);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = configured;
+        }
+
         if (string.IsNullOrWhiteSpace(name) && OperatingSystem.IsMacOS())
         {
             name = GetMacPreferredLanguage();
