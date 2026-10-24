@@ -33,6 +33,35 @@
   <string>public.app-category.utilities</string>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <!-- gbfilecopier:// links, used by the Finder extension -->
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>io.github.giuliobanterla.gbfilecopier</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>gbfilecopier</string>
+      </array>
+    </dict>
+  </array>
+  <!-- Files and folders can be dropped on the Dock icon; "Alternate": never the default app -->
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>Files and folders to copy</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+      <key>LSItemContentTypes</key>
+      <array>
+        <string>public.item</string>
+        <string>public.folder</string>
+      </array>
+    </dict>
+  </array>
   <key>NSHumanReadableCopyright</key>
   <string>Copyright © @YEAR@ Giulio Banterla. GNU GPL v3 or later.</string>
 </dict>
