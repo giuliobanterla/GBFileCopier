@@ -1,11 +1,16 @@
 # Builds the Windows packages: the installer (Inno Setup) and a portable .zip with the app and gbcopy.
 #
-#   pwsh packaging/windows/build.ps1 [-Version 0.1.0] [-Output artifacts]
+#   pwsh packaging/windows/build.ps1 [-Version 0.1.0] [-Output artifacts] [-Stage All|Files|Package]
+#
+# -Stage Files builds only the program files, into <Output>/files; -Stage Package makes the zip and the
+# installer from that folder. In between, the release workflow signs the programs, so that the installer
+# contains signed programs. -Stage All (default) does both.
 #
 # Needs Inno Setup 6 (preinstalled on the GitHub Windows runners; otherwise: winget install JRSoftware.InnoSetup).
 param(
     [string] $Version,
-    [string] $Output
+    [string] $Output,
+    [ValidateSet('All', 'Files', 'Package')] [string] $Stage = 'All'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,34 +23,40 @@ if (-not $Output) { $Output = "$root/artifacts" }
 $numericVersion = ($Version -split '[-+]')[0]
 New-Item -ItemType Directory -Force -Path $Output | Out-Null
 $Output = (Resolve-Path $Output).Path
-$work = Join-Path $Output 'windows-work'
-$files = Join-Path $work 'GBFileCopier'
+$files = Join-Path $Output 'files'
 
-Write-Host "==> GBFileCopier $Version for Windows"
-Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue
+Write-Host "==> GBFileCopier $Version for Windows ($Stage)"
 
-# 1. Native AOT builds of the app and of the command line tool, in the same folder
-foreach ($project in 'GBFileCopier.App', 'GBFileCopier.Cli') {
-    dotnet publish "$root/src/$project" -c Release -r win-x64 -p:Version=$Version -o $files -nologo -v quiet
-    if ($LASTEXITCODE -ne 0) { throw "dotnet publish $project failed" }
+if ($Stage -in 'All', 'Files') {
+    # 1. Native AOT builds of the app and of the command line tool, in the same folder
+    Remove-Item -Recurse -Force $files -ErrorAction SilentlyContinue
+    foreach ($project in 'GBFileCopier.App', 'GBFileCopier.Cli') {
+        dotnet publish "$root/src/$project" -c Release -r win-x64 -p:Version=$Version -o $files -nologo -v quiet
+        if ($LASTEXITCODE -ne 0) { throw "dotnet publish $project failed" }
+    }
+    Remove-Item "$files/*.pdb" -ErrorAction SilentlyContinue
+    Copy-Item "$root/LICENSE" "$files/LICENSE.txt"
 }
-Remove-Item "$files/*.pdb" -ErrorAction SilentlyContinue
-Copy-Item "$root/LICENSE" "$files/LICENSE.txt"
 
-# 2. Portable zip
-$zip = Join-Path $Output "GBFileCopier-$Version-windows-x64.zip"
-Remove-Item $zip -ErrorAction SilentlyContinue
-Compress-Archive -Path "$files/*" -DestinationPath $zip
+if ($Stage -in 'All', 'Package') {
+    if (-not (Test-Path "$files/GBFileCopier.exe")) { throw "Program files not found in ${files}: run -Stage Files first" }
 
-# 3. Installer
-$iscc = @(
-    "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
-    "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
-    "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
-) | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $iscc) { throw 'Inno Setup 6 not found' }
-& $iscc /Qp "/DAppVersion=$Version" "/DNumericVersion=$numericVersion" "/DSourceDir=$files" "/DRepoDir=$root" "/DOutputDir=$Output" "$PSScriptRoot/GBFileCopier.iss"
-if ($LASTEXITCODE -ne 0) { throw 'Inno Setup failed' }
+    # 2. Portable zip
+    $zip = Join-Path $Output "GBFileCopier-$Version-windows-x64.zip"
+    Remove-Item $zip -ErrorAction SilentlyContinue
+    Compress-Archive -Path "$files/*" -DestinationPath $zip
 
-Remove-Item -Recurse -Force $work
+    # 3. Installer
+    $iscc = @(
+        "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+        "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+        "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $iscc) { throw 'Inno Setup 6 not found' }
+    & $iscc /Qp "/DAppVersion=$Version" "/DNumericVersion=$numericVersion" "/DSourceDir=$files" "/DRepoDir=$root" "/DOutputDir=$Output" "$PSScriptRoot/GBFileCopier.iss"
+    if ($LASTEXITCODE -ne 0) { throw 'Inno Setup failed' }
+
+    Remove-Item -Recurse -Force $files
+}
+
 Get-ChildItem $Output -File | ForEach-Object { Write-Host "==> $($_.FullName)" }

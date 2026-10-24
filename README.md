@@ -34,7 +34,8 @@ Download the packages from the [Releases](https://github.com/giuliobanterla/GBFi
   Start menu entry and `gbcopy.exe` next to the app. SmartScreen may warn about an unknown publisher
   until the installer is signed: choose *More info* → *Run anyway*. A portable `.zip` is also available.
 
-`SHA256SUMS.txt` lists the checksums of every file.
+`SHA256SUMS.txt` lists the checksums of every file. How the release files are built and signed:
+[Code signing policy](CODE_SIGNING_POLICY.md).
 
 ### Building the packages
 
@@ -179,6 +180,12 @@ Native AOT build of the CLI (single executable, no runtime required):
 ```
 dotnet publish src/GBFileCopier.Cli -c Release
 ```
+
+## Code signing policy
+
+Windows releases: free code signing provided by [SignPath.io](https://about.signpath.io), certificate
+by [SignPath Foundation](https://signpath.org). macOS releases: signed with the maintainer's Developer ID
+and notarized by Apple. Details, team roles and privacy: [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
 
 ## License
 
