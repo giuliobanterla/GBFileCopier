@@ -30,13 +30,43 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 CloseApplications=yes
+; Explorer reads the context menu entries again after the install
+ChangesAssociations=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 
+[CustomMessages]
+english.ContextMenu=Add GBFileCopier to the Explorer context menu and to "Send to"
+italian.ContextMenu=Aggiungi GBFileCopier al menu contestuale di Esplora risorse e a "Invia a"
+english.CopyOrMove=Copy or Move with GBFileCopier...
+italian.CopyOrMove=Copia o sposta con GBFileCopier...
+english.PasteHere=Paste Here with GBFileCopier
+italian.PasteHere=Incolla qui con GBFileCopier
+english.MoveHere=Move Here with GBFileCopier
+italian.MoveHere=Sposta qui con GBFileCopier
+
 [Tasks]
+Name: "contextmenu"; Description: "{cm:ContextMenu}"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+; Classic context menu entries (on Windows 11 under "Show more options"). HKA is the current user's
+; registry for a per-user install and the machine's for an install for all users. Explorer starts
+; the app once per selected item: the app gathers them in one window (see SingleInstance).
+[Registry]
+Root: HKA; Subkey: "Software\Classes\*\shell\GBFileCopier"; ValueType: string; ValueName: "MUIVerb"; ValueData: "{cm:CopyOrMove}"; Tasks: contextmenu; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\*\shell\GBFileCopier"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\GBFileCopier.exe"",0"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\*\shell\GBFileCopier\command"; ValueType: string; ValueName: ""; ValueData: """{app}\GBFileCopier.exe"" --add ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\Directory\shell\GBFileCopier"; ValueType: string; ValueName: "MUIVerb"; ValueData: "{cm:CopyOrMove}"; Tasks: contextmenu; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\shell\GBFileCopier"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\GBFileCopier.exe"",0"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\Directory\shell\GBFileCopier\command"; ValueType: string; ValueName: ""; ValueData: """{app}\GBFileCopier.exe"" --add ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierPaste"; ValueType: string; ValueName: "MUIVerb"; ValueData: "{cm:PasteHere}"; Tasks: contextmenu; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierPaste"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\GBFileCopier.exe"",0"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierPaste\command"; ValueType: string; ValueName: ""; ValueData: """{app}\GBFileCopier.exe"" --paste ""%V"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierMove"; ValueType: string; ValueName: "MUIVerb"; ValueData: "{cm:MoveHere}"; Tasks: contextmenu; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierMove"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\GBFileCopier.exe"",0"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierMove\command"; ValueType: string; ValueName: ""; ValueData: """{app}\GBFileCopier.exe"" --paste ""%V"" --move"; Tasks: contextmenu
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb"
@@ -45,6 +75,8 @@ Source: "{#RepoDir}\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\GBFileCopier.exe"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\GBFileCopier.exe"; Tasks: desktopicon
+; "Send to" passes all the selected items in a single start
+Name: "{usersendto}\{#AppName}"; Filename: "{app}\GBFileCopier.exe"; Parameters: "--add"; Tasks: contextmenu
 
 [Run]
 Filename: "{app}\GBFileCopier.exe"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
