@@ -25,6 +25,7 @@ A free and open source file copy utility for **Windows** and **macOS**, inspired
 ```
 gbcopy copy <sources>... <destination> [options]
 gbcopy move <sources>... <destination> [options]
+gbcopy paste [<destination>] [--move | --copy] [options]
 gbcopy hash <files>... [--hash <algorithm>]
 ```
 
@@ -47,6 +48,16 @@ On Windows and macOS, native APIs make the safety checks real:
 - **Flushing reaches permanent storage** (`FlushFileBuffers`; `F_FULLFSYNC` on macOS, which also
   empties the drive's own cache).
 - **Moves on the same volume are instant renames**; across volumes they become copy, verify, delete.
+
+### Copy (or cut) in the file manager, paste with GBFileCopier
+
+`gbcopy paste` takes the files from the system clipboard, as copied in the Finder or in Explorer,
+and pastes them into the destination (the current folder by default) with all the checks above.
+
+- **macOS**: the Finder has no "cut" for files; it decides when pasting (⌘V copies, ⌥⌘V moves).
+  So: copy with ⌘C in the Finder, then `gbcopy paste` to copy or `gbcopy paste --move` to move.
+- **Windows**: cut (Ctrl+X) in Explorer is recognized and the files are moved; `--copy` copies them
+  anyway. After a successful cut and paste the clipboard is emptied, as Explorer does.
 
 Exit codes: `0` success, `1` some files failed, `3` cancelled.
 

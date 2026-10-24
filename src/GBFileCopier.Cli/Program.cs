@@ -5,6 +5,7 @@ using GBFileCopier.Core;
 using GBFileCopier.Core.Copying;
 using GBFileCopier.Core.Hashing;
 using GBFileCopier.Platform;
+using GBFileCopier.Platform.Clipboard;
 
 const int ExitFailures = 1;
 const int ExitCancelled = 3;
@@ -48,6 +49,7 @@ var pathsArgument = new Argument<string[]>("paths")
 var rootCommand = new RootCommand($"{AppInfo.Name}: copy and move files with integrity verification");
 rootCommand.Subcommands.Add(CreateTransferCommand("copy", CopyMode.Copy, "Copy files and folders into a destination folder"));
 rootCommand.Subcommands.Add(CreateTransferCommand("move", CopyMode.Move, "Move files and folders: each source is deleted only after its copy has succeeded"));
+rootCommand.Subcommands.Add(CreatePasteCommand());
 rootCommand.Subcommands.Add(CreateHashCommand());
 
 var infoCommand = new Command("info", "Show version and platform information");
@@ -67,20 +69,96 @@ Command CreateTransferCommand(string name, CopyMode mode, string description)
     {
         pathsArgument, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption,
     };
-    command.SetAction((parseResult, cancellationToken) => RunTransferAsync(parseResult, mode, cancellationToken));
+    command.SetAction(async (parseResult, cancellationToken) =>
+    {
+        var paths = parseResult.GetValue(pathsArgument)!;
+        var result = await RunTransferAsync(parseResult, paths[..^1], paths[^1], mode, cancellationToken);
+        return ExitCode(result);
+    });
     return command;
 }
 
-async Task<int> RunTransferAsync(ParseResult parseResult, CopyMode mode, CancellationToken cancellationToken)
+Command CreatePasteCommand()
 {
-    var paths = parseResult.GetValue(pathsArgument)!;
+    var destinationArgument = new Argument<string?>("destination")
+    {
+        Description = "Destination folder (default: the current folder)",
+        Arity = ArgumentArity.ZeroOrOne,
+    };
+    var moveOption = new Option<bool>("--move", "-m")
+    {
+        Description = "Move the files (cut and paste). On macOS this is the equivalent of ⌥⌘V in the Finder; " +
+                      "on Windows it is automatic when the files were cut in Explorer",
+    };
+    var copyOption = new Option<bool>("--copy")
+    {
+        Description = "Copy the files even if they were cut in Explorer",
+    };
+    var command = new Command("paste", "Paste the files copied (or cut) in the Finder or in Explorer")
+    {
+        destinationArgument, moveOption, copyOption, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption,
+    };
+    command.Validators.Add(result =>
+    {
+        if (result.GetValue(moveOption) && result.GetValue(copyOption))
+        {
+            result.AddError("Use either --move or --copy, not both");
+        }
+    });
+    command.SetAction(async (parseResult, cancellationToken) =>
+    {
+        if (!FileClipboard.IsSupported)
+        {
+            Console.Error.WriteLine("The clipboard is supported only on macOS and Windows");
+            return ExitFailures;
+        }
+
+        var clipboard = FileClipboard.Read();
+        if (clipboard is null)
+        {
+            Console.Error.WriteLine("There are no files on the clipboard: copy them in the Finder or in Explorer first");
+            return ExitFailures;
+        }
+
+        var mode = parseResult.GetValue(moveOption) ? CopyMode.Move
+            : parseResult.GetValue(copyOption) ? CopyMode.Copy
+            : clipboard.IsCut ? CopyMode.Move
+            : CopyMode.Copy;
+        var destination = parseResult.GetValue(destinationArgument) ?? Directory.GetCurrentDirectory();
+        Console.WriteLine($"{(mode == CopyMode.Move ? "Moving" : "Copying")} {clipboard.Paths.Count} item(s) from the clipboard to {Path.GetFullPath(destination)}");
+
+        var result = await RunTransferAsync(parseResult, clipboard.Paths, destination, mode, cancellationToken);
+
+        // Like Explorer: after a cut and paste the clipboard points to files that are gone
+        if (clipboard.IsCut && mode == CopyMode.Move && result.IsSuccess)
+        {
+            FileClipboard.Clear();
+        }
+
+        return ExitCode(result);
+    });
+    return command;
+}
+
+static int ExitCode(CopyJobResult result) =>
+    result.WasCancelled ? ExitCancelled
+    : result.FailedCount > 0 ? ExitFailures
+    : 0;
+
+async Task<CopyJobResult> RunTransferAsync(
+    ParseResult parseResult,
+    IReadOnlyList<string> sources,
+    string destination,
+    CopyMode mode,
+    CancellationToken cancellationToken)
+{
     var ui = new ConsoleUi();
     var interactive = !Console.IsInputRedirected && !Console.IsOutputRedirected;
 
     var request = new CopyRequest
     {
-        Sources = paths[..^1],
-        Destination = paths[^1],
+        Sources = sources,
+        Destination = destination,
         Mode = mode,
         Options = new CopyOptions
         {
@@ -94,10 +172,7 @@ async Task<int> RunTransferAsync(ParseResult parseResult, CopyMode mode, Cancell
 
     var result = await new CopyJob(request, PlatformFileSystem.Current).RunAsync(ui, ui.ResolveConflictAsync, cancellationToken);
     PrintSummary(ui, result);
-
-    return result.WasCancelled ? ExitCancelled
-        : result.FailedCount > 0 ? ExitFailures
-        : 0;
+    return result;
 }
 
 static void PrintSummary(ConsoleUi ui, CopyJobResult result)
