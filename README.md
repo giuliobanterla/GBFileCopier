@@ -65,6 +65,21 @@ application menu; on Windows in the File and Help menus.
 The app follows the light or dark appearance of the system; Settings can force light or dark
 instead, with immediate effect.
 
+### Finder extension (macOS)
+
+The app includes a Finder extension that adds GBFileCopier to the context menu:
+
+- on selected files and folders: **Copy or Move with GBFileCopier…** — they become the sources;
+- on the background of a folder, when files have been copied with ⌘C: **Paste Here** and
+  **Move Here with GBFileCopier** — the folder becomes the destination.
+
+Enable it once in System Settings → General → Login Items & Extensions → Extensions → Finder
+(GBFileCopier must be in Applications and opened at least once). The extension only fills in the
+window; the copy starts when you press Copy or Move. The same requests can be sent with links like
+`gbfilecopier://add?source=/path` and `gbfilecopier://paste?destination=/folder&move=1`, and files
+can be dropped on the Dock icon. To see what the app receives:
+`open --env GBFILECOPIER_LOG=/tmp/gbfilecopier.log -a GBFileCopier`.
+
 ### Languages
 
 The app is available in **English** and **Italian**. It follows the system language (on macOS the

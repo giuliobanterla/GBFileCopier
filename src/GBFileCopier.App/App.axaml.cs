@@ -23,6 +23,36 @@ public partial class App : Application
     }
 
     /// <summary>Switches the theme of every open window at once, no restart needed.</summary>
+    private static void OnActivated(ActivatedEventArgs e, Window window, MainViewModel viewModel)
+    {
+        DiagnosticLog.Write(e switch
+        {
+            ProtocolActivatedEventArgs p => $"Activated: {p.Uri}",
+            FileActivatedEventArgs f => $"Activated: {f.Files.Count} file(s)",
+            _ => $"Activated: {e.Kind}",
+        });
+        switch (e)
+        {
+            case ProtocolActivatedEventArgs { Uri: var uri } when ExternalRequest.Parse(uri) is { } request:
+                viewModel.Apply(request);
+                DiagnosticLog.Write($"Applied: sources={viewModel.Sources.Count} destination={viewModel.Destination} move={viewModel.PreferMove}");
+                break;
+            case FileActivatedEventArgs { Files: var files }:
+                viewModel.AddSources(WindowUiServices.LocalPaths(files));
+                break;
+            default:
+                return;
+        }
+
+        // Bring the window to the front, also if it was minimized
+        if (window.WindowState == WindowState.Minimized)
+        {
+            window.WindowState = WindowState.Normal;
+        }
+
+        window.Activate();
+    }
+
     public static void ApplyTheme(ThemeChoice theme)
     {
         if (Current is { } app)
@@ -54,6 +84,12 @@ public partial class App : Application
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;
+
+            // macOS: gbfilecopier:// links (from the Finder extension) and files dropped on the Dock icon
+            if (TryGetFeature(typeof(IActivatableLifetime)) is IActivatableLifetime activatable)
+            {
+                activatable.Activated += (_, e) => OnActivated(e, window, viewModel);
+            }
 
             if (OperatingSystem.IsMacOS())
             {

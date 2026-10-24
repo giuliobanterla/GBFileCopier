@@ -185,6 +185,34 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         StatusText = string.Format(CultureInfo.CurrentCulture, PreferMove ? Strings.PastedThenMove : Strings.PastedThenCopy, clipboard.Paths.Count);
     }
 
+    /// <summary>
+    /// Applies a request from the Finder extension or a gbfilecopier:// link: fills in the window,
+    /// never starts the copy. Ignored while a copy is running.
+    /// </summary>
+    public void Apply(ExternalRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (IsRunning)
+        {
+            return;
+        }
+
+        if (request.Destination is { } destination)
+        {
+            Destination = destination;
+        }
+
+        if (request.PasteFromClipboard)
+        {
+            Paste(request.Move);
+        }
+        else
+        {
+            AddSources(request.Sources);
+            PreferMove = request.Move;
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanRemove))]
     private void RemoveSelected()
     {
