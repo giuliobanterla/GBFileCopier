@@ -1,9 +1,9 @@
 namespace GBFileCopier.App.Services;
 
 /// <summary>
-/// A request from outside the app: the Finder extension (or any program) opening a
-/// gbfilecopier:// link. Any web page can open such a link too, so a request only fills in the
-/// window; it never starts a copy by itself.
+/// A request from outside the app: the Finder extension opening a gbfilecopier:// link, or the
+/// Explorer context menu and "Send to" starting the app with arguments. Links can come from any
+/// web page too, so a request only fills in the window; it never starts a copy by itself.
 /// </summary>
 /// <param name="Sources">Files and folders to add to the list.</param>
 /// <param name="Destination">Destination folder to set, or null.</param>
@@ -35,6 +35,53 @@ public sealed record ExternalRequest(IReadOnlyList<string> Sources, string? Dest
             "PASTE" => new ExternalRequest([], Values("destination").FirstOrDefault(), PasteFromClipboard: true, move),
             _ => null,
         };
+    }
+
+    /// <summary>
+    /// Command line, as used by the Explorer context menu and "Send to":
+    /// <c>--add path…</c> (or just paths), <c>--paste [folder]</c>, <c>--move</c>, or a gbfilecopier:// link.
+    /// Relative paths are resolved against <paramref name="workingDirectory"/>, the directory the
+    /// command was started in (which differs from the running instance's one).
+    /// </summary>
+    /// <returns>Null if the arguments ask for nothing.</returns>
+    public static ExternalRequest? FromArguments(IReadOnlyList<string> arguments, string workingDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+        if (arguments.Count == 1 && Uri.TryCreate(arguments[0], UriKind.Absolute, out var uri) && uri.Scheme == Scheme)
+        {
+            return Parse(uri);
+        }
+
+        var paths = new List<string>();
+        var paste = false;
+        var move = false;
+        foreach (var argument in arguments)
+        {
+            switch (argument)
+            {
+                case "--add":
+                    break;
+                case "--paste":
+                    paste = true;
+                    break;
+                case "--move":
+                    move = true;
+                    break;
+                case "":
+                    break;
+                default:
+                    // Explorer quotes "C:" as "C:"" when the folder is a drive root: drop the stray quote
+                    paths.Add(Path.GetFullPath(argument.TrimEnd('"'), workingDirectory));
+                    break;
+            }
+        }
+
+        if (paste)
+        {
+            return new ExternalRequest([], paths.FirstOrDefault(), PasteFromClipboard: true, move);
+        }
+
+        return paths.Count > 0 ? new ExternalRequest(paths, null, PasteFromClipboard: false, move) : null;
     }
 
     private static List<KeyValuePair<string, string>> ParseQuery(string query) =>

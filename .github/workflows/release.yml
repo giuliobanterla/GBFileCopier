@@ -114,9 +114,28 @@ jobs:
         shell: pwsh
         run: |
           $setup = Get-ChildItem artifacts/*-setup.exe | Select-Object -First 1
-          Start-Process $setup.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/CURRENTUSER', "/DIR=$env:RUNNER_TEMP\gbfc" -Wait
-          & "$env:RUNNER_TEMP\gbfc\gbcopy.exe" info
-          if (-not (Test-Path "$env:RUNNER_TEMP\gbfc\GBFileCopier.exe")) { throw 'GBFileCopier.exe not installed' }
+          $app = "$env:RUNNER_TEMP\gbfc"
+          Start-Process $setup.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/CURRENTUSER', "/DIR=$app" -Wait
+          & "$app\gbcopy.exe" info
+          if (-not (Test-Path "$app\GBFileCopier.exe")) { throw 'GBFileCopier.exe not installed' }
+
+          # Context menu entries for the current user, with the command Explorer will run
+          $command = (Get-ItemProperty 'HKCU:\Software\Classes\Directory\Background\shell\GBFileCopierPaste\command').'(default)'
+          Write-Host "Paste command: $command"
+          if ($command -notlike "*GBFileCopier.exe*--paste*") { throw 'Context menu entry missing' }
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\SendTo\GBFileCopier.lnk")) { throw 'Send to shortcut missing' }
+
+          # A second start hands its arguments to the running app and exits, as with a multiple selection in Explorer
+          $log = "$env:RUNNER_TEMP\gbfc.log"
+          $first = Start-Process "$app\GBFileCopier.exe" -Environment @{ GBFILECOPIER_LOG = $log } -PassThru
+          Start-Sleep -Seconds 5
+          $second = Start-Process "$app\GBFileCopier.exe" -ArgumentList '--add', "`"$env:WINDIR\win.ini`"" -PassThru -Wait
+          Start-Sleep -Seconds 2
+          $first | Stop-Process -Force
+          Get-Content $log -ErrorAction SilentlyContinue
+          if ($first.HasExited -and $first.ExitCode -ne -1) { Write-Host "First instance exit code: $($first.ExitCode)" }
+          if ($second.ExitCode -ne 0) { throw "Second start failed: $($second.ExitCode)" }
+          if (-not (Select-String -Path $log -Pattern 'Applied: sources=1' -Quiet)) { throw 'The running app did not receive the forwarded item' }
 
       - name: Upload
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

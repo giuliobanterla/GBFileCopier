@@ -80,6 +80,17 @@ window; the copy starts when you press Copy or Move. The same requests can be se
 can be dropped on the Dock icon. To see what the app receives:
 `open --env GBFILECOPIER_LOG=/tmp/gbfilecopier.log -a GBFileCopier`.
 
+### Explorer context menu (Windows)
+
+The installer (option checked by default) adds to the Explorer context menu — on Windows 11 under
+*Show more options* — the same entries as the Finder extension: **Copy or Move with GBFileCopier…**
+on files and folders, **Paste Here** and **Move Here with GBFileCopier** on the background of a
+folder, plus GBFileCopier in **Send to**. Explorer starts the app once per selected item: the
+first start opens the window and the others hand their items over to it, so they all end up in the
+same list. As on macOS, the window is only filled in: the copy starts when you press Copy or Move.
+
+The same works from a command prompt: `GBFileCopier --add <paths>`, `GBFileCopier --paste [folder] [--move]`.
+
 ### Languages
 
 The app is available in **English** and **Italian**. It follows the system language (on macOS the
