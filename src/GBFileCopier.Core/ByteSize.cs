@@ -7,7 +7,9 @@ public static class ByteSize
     private static readonly string[] Units = ["B", "KB", "MB", "GB", "TB", "PB"];
 
     /// <summary>Human readable size with binary multiples, for example "1.5 GB".</summary>
-    public static string Format(double bytes)
+    /// <param name="bytes">The size.</param>
+    /// <param name="culture">Number format; invariant ("1.5") if null, as on the command line.</param>
+    public static string Format(double bytes, CultureInfo? culture = null)
     {
         var unit = 0;
         while (Math.Abs(bytes) >= 1024 && unit < Units.Length - 1)
@@ -17,6 +19,6 @@ public static class ByteSize
         }
 
         var format = unit == 0 ? "0" : "0.0";
-        return bytes.ToString(format, CultureInfo.InvariantCulture) + " " + Units[unit];
+        return bytes.ToString(format, culture ?? CultureInfo.InvariantCulture) + " " + Units[unit];
     }
 }

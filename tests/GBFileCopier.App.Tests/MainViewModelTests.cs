@@ -91,8 +91,8 @@ public sealed class MainViewModelTests : IDisposable
         Assert.True(File.Exists(_temp.Combine("dst", "b.bin")));
         Assert.Equal("Done", viewModel.StatusText);
         Assert.Equal(100, viewModel.ProgressPercent);
-        Assert.StartsWith("2 copied", viewModel.Summary, StringComparison.Ordinal);
-        Assert.Contains("2 verified", viewModel.Summary, StringComparison.Ordinal);
+        Assert.StartsWith("Copied: 2", viewModel.Summary, StringComparison.Ordinal);
+        Assert.Contains("verified: 2", viewModel.Summary, StringComparison.Ordinal);
         Assert.True(viewModel.ShowAllResults); // no problems: all files are listed
         Assert.All(viewModel.Results, r => Assert.Equal("Verified", r.Status));
         Assert.False(viewModel.IsRunning);

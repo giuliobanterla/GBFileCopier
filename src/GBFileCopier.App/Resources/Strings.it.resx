@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="FilesAndFolders" xml:space="preserve">
+    <value>File e cartelle</value>
+  </data>
+  <data name="AddFiles" xml:space="preserve">
+    <value>Aggiungi file…</value>
+  </data>
+  <data name="AddFolder" xml:space="preserve">
+    <value>Aggiungi cartella…</value>
+  </data>
+  <data name="Paste" xml:space="preserve">
+    <value>Incolla</value>
+  </data>
+  <data name="PasteTip" xml:space="preserve">
+    <value>Incolla i file copiati nel Finder o in Esplora risorse (⌘V / Ctrl+V). Con ⌥⌘V li incolla per spostarli.</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Rimuovi</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Svuota</value>
+  </data>
+  <data name="DropHere" xml:space="preserve">
+    <value>Trascina qui file e cartelle</value>
+  </data>
+  <data name="DropHint" xml:space="preserve">
+    <value>oppure incolla con ⌘V / Ctrl+V ciò che hai copiato nel Finder o in Esplora risorse</value>
+  </data>
+  <data name="Destination" xml:space="preserve">
+    <value>Destinazione</value>
+  </data>
+  <data name="DestinationPlaceholder" xml:space="preserve">
+    <value>Cartella in cui copiare i file (puoi anche trascinarla qui)</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Sfoglia…</value>
+  </data>
+  <data name="VerifyAfterCopying" xml:space="preserve">
+    <value>Verifica dopo la copia</value>
+  </data>
+  <data name="VerifyTip" xml:space="preserve">
+    <value>Rilegge ogni copia dal disco e ne confronta il checksum con l'originale</value>
+  </data>
+  <data name="Checksum" xml:space="preserve">
+    <value>Checksum</value>
+  </data>
+  <data name="IfFileExists" xml:space="preserve">
+    <value>Se il file esiste</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>Pausa</value>
+  </data>
+  <data name="Resume" xml:space="preserve">
+    <value>Riprendi</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annulla</value>
+  </data>
+  <data name="Move" xml:space="preserve">
+    <value>Sposta</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copia</value>
+  </data>
+  <data name="Results" xml:space="preserve">
+    <value>Risultati</value>
+  </data>
+  <data name="ShowAllFiles" xml:space="preserve">
+    <value>Mostra tutti i file</value>
+  </data>
+  <data name="ConflictTitle" xml:space="preserve">
+    <value>Il file esiste già</value>
+  </data>
+  <data name="AlreadyExistsIn" xml:space="preserve">
+    <value>esiste già in {0}</value>
+  </data>
+  <data name="Existing" xml:space="preserve">
+    <value>Esistente</value>
+  </data>
+  <data name="New" xml:space="preserve">
+    <value>Nuovo</value>
+  </data>
+  <data name="ApplyToNextConflicts" xml:space="preserve">
+    <value>Fai lo stesso per i prossimi conflitti</value>
+  </data>
+  <data name="KeepBoth" xml:space="preserve">
+    <value>Mantieni entrambi</value>
+  </data>
+  <data name="KeepBothTip" xml:space="preserve">
+    <value>Salva il nuovo file come "nome (2)"</value>
+  </data>
+  <data name="Skip" xml:space="preserve">
+    <value>Salta</value>
+  </data>
+  <data name="Replace" xml:space="preserve">
+    <value>Sostituisci</value>
+  </data>
+  <data name="NewIsMoreRecent" xml:space="preserve">
+    <value>Il file nuovo è più recente</value>
+  </data>
+  <data name="ExistingIsMoreRecent" xml:space="preserve">
+    <value>Il file esistente è più recente</value>
+  </data>
+  <data name="SameModificationDate" xml:space="preserve">
+    <value>Stessa data di modifica</value>
+  </data>
+  <data name="SizeAndModified" xml:space="preserve">
+    <value>{0}  ·  modificato il {1}</value>
+  </data>
+  <data name="IdleStatus" xml:space="preserve">
+    <value>Aggiungi file e cartelle, scegli la destinazione, poi Copia o Sposta</value>
+  </data>
+  <data name="PickFilesTitle" xml:space="preserve">
+    <value>Aggiungi file</value>
+  </data>
+  <data name="PickFoldersTitle" xml:space="preserve">
+    <value>Aggiungi cartelle</value>
+  </data>
+  <data name="PickDestinationTitle" xml:space="preserve">
+    <value>Scegli la cartella di destinazione</value>
+  </data>
+  <data name="NoFilesOnClipboard" xml:space="preserve">
+    <value>Negli appunti non ci sono file: copiali prima nel Finder o in Esplora risorse</value>
+  </data>
+  <data name="PastedThenMove" xml:space="preserve">
+    <value>Elementi incollati: {0}. Scegli la destinazione, poi Sposta</value>
+  </data>
+  <data name="PastedThenCopy" xml:space="preserve">
+    <value>Elementi incollati: {0}. Scegli la destinazione, poi Copia</value>
+  </data>
+  <data name="Paused" xml:space="preserve">
+    <value>In pausa</value>
+  </data>
+  <data name="Cancelling" xml:space="preserve">
+    <value>Annullamento…</value>
+  </data>
+  <data name="Scanning" xml:space="preserve">
+    <value>Analisi delle cartelle…</value>
+  </data>
+  <data name="VerifyingFile" xml:space="preserve">
+    <value>Verifica di {0}</value>
+  </data>
+  <data name="CopyingFile" xml:space="preserve">
+    <value>Copia di {0}</value>
+  </data>
+  <data name="Finishing" xml:space="preserve">
+    <value>Completamento…</value>
+  </data>
+  <data name="ProgressDetail" xml:space="preserve">
+    <value>File {0} di {1}  ·  {2}/s</value>
+  </data>
+  <data name="TimeLeft" xml:space="preserve">
+    <value>ancora {0}</value>
+  </data>
+  <data name="Done" xml:space="preserve">
+    <value>Completato</value>
+  </data>
+  <data name="FinishedWithErrors" xml:space="preserve">
+    <value>Completato con errori</value>
+  </data>
+  <data name="Cancelled" xml:space="preserve">
+    <value>Annullato</value>
+  </data>
+  <data name="SummaryCopied" xml:space="preserve">
+    <value>Copiati: {0} ({1})</value>
+  </data>
+  <data name="SummaryMoved" xml:space="preserve">
+    <value>Spostati: {0} ({1})</value>
+  </data>
+  <data name="SummaryVerified" xml:space="preserve">
+    <value>verificati: {0}</value>
+  </data>
+  <data name="SummarySkipped" xml:space="preserve">
+    <value>saltati: {0}</value>
+  </data>
+  <data name="SummaryFailed" xml:space="preserve">
+    <value>non riusciti: {0}</value>
+  </data>
+  <data name="SummaryNotProcessed" xml:space="preserve">
+    <value>non elaborati: {0}</value>
+  </data>
+  <data name="StatusMoved" xml:space="preserve">
+    <value>Spostato</value>
+  </data>
+  <data name="StatusMovedVerified" xml:space="preserve">
+    <value>Spostato e verificato</value>
+  </data>
+  <data name="StatusVerified" xml:space="preserve">
+    <value>Verificato</value>
+  </data>
+  <data name="StatusCopied" xml:space="preserve">
+    <value>Copiato</value>
+  </data>
+  <data name="StatusSkipped" xml:space="preserve">
+    <value>Saltato</value>
+  </data>
+  <data name="StatusFailed" xml:space="preserve">
+    <value>Non riuscito</value>
+  </data>
+  <data name="StatusNotProcessed" xml:space="preserve">
+    <value>Non elaborato</value>
+  </data>
+  <data name="Folder" xml:space="preserve">
+    <value>Cartella</value>
+  </data>
+  <data name="NotFound" xml:space="preserve">
+    <value>Non trovato</value>
+  </data>
+  <data name="HashFastest" xml:space="preserve">
+    <value>xxHash3 (il più veloce)</value>
+  </data>
+  <data name="HashNone" xml:space="preserve">
+    <value>Nessuno</value>
+  </data>
+  <data name="ConflictAsk" xml:space="preserve">
+    <value>Chiedi</value>
+  </data>
+  <data name="ConflictOverwriteIfNewer" xml:space="preserve">
+    <value>Sovrascrivi se più recente</value>
+  </data>
+  <data name="ConflictOverwrite" xml:space="preserve">
+    <value>Sovrascrivi</value>
+  </data>
+  <data name="ConflictSkip" xml:space="preserve">
+    <value>Salta</value>
+  </data>
+  <data name="ConflictKeepBoth" xml:space="preserve">
+    <value>Mantieni entrambi</value>
+  </data>
+</root>

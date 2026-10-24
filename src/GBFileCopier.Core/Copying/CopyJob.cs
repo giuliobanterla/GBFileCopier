@@ -1,4 +1,6 @@
+using System.Globalization;
 using GBFileCopier.Core.Hashing;
+using GBFileCopier.Core.Resources;
 
 namespace GBFileCopier.Core.Copying;
 
@@ -190,7 +192,7 @@ public sealed class CopyJob
                     break;
                 default:
                     tracker.AddBytes(workload);
-                    return CreateItemResult(item, target, FileCopyStatus.Skipped, error: "The destination already exists");
+                    return CreateItemResult(item, target, FileCopyStatus.Skipped, error: Messages.DestinationExists);
             }
         }
 
@@ -313,7 +315,7 @@ public sealed class CopyJob
             source.Refresh();
             if (bytes != metadata.Length || source.Length != metadata.Length || source.LastWriteTimeUtc != metadata.LastWriteTimeUtc)
             {
-                throw new IOException("The source file changed while it was being copied");
+                throw new IOException(Messages.SourceChanged);
             }
 
             var verified = false;
@@ -324,7 +326,7 @@ public sealed class CopyJob
                     temp, Options.EffectiveHashAlgorithm, Options.BufferSize, _platform, _pause, onBytes, cancellationToken);
                 if (!copyHash.AsSpan().SequenceEqual(hash))
                 {
-                    throw new IOException("Verification failed: the copy does not match the source");
+                    throw new IOException(Messages.VerificationFailed);
                 }
 
                 verified = true;
@@ -357,7 +359,7 @@ public sealed class CopyJob
         {
             if (Directory.Exists(target) && (File.GetAttributes(target) & FileAttributes.ReparsePoint) == 0)
             {
-                throw new IOException("A folder with the same name already exists");
+                throw new IOException(Messages.FolderExistsWithSameName);
             }
 
             File.Delete(target);
@@ -393,15 +395,15 @@ public sealed class CopyJob
 
         if (Options.PreserveAttributes && !OperatingSystem.IsWindows() && metadata.UnixMode is { } mode)
         {
-            Try("permissions", () => File.SetUnixFileMode(target, mode));
+            Try(Messages.MetadataPermissions, () => File.SetUnixFileMode(target, mode));
         }
 
         if (Options.PreserveTimestamps)
         {
-            Try("modified time", () => File.SetLastWriteTimeUtc(target, metadata.LastWriteTimeUtc));
+            Try(Messages.MetadataModifiedTime, () => File.SetLastWriteTimeUtc(target, metadata.LastWriteTimeUtc));
             if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
             {
-                Try("creation time", () => File.SetCreationTimeUtc(target, metadata.CreationTimeUtc));
+                Try(Messages.MetadataCreationTime, () => File.SetCreationTimeUtc(target, metadata.CreationTimeUtc));
             }
         }
 
@@ -410,10 +412,10 @@ public sealed class CopyJob
         {
             const FileAttributes copied = FileAttributes.ReadOnly | FileAttributes.Hidden | FileAttributes.System | FileAttributes.Archive;
             var attributes = metadata.Attributes & copied;
-            Try("attributes", () => File.SetAttributes(target, attributes == 0 ? FileAttributes.Normal : attributes));
+            Try(Messages.MetadataAttributes, () => File.SetAttributes(target, attributes == 0 ? FileAttributes.Normal : attributes));
         }
 
-        return problems.Count == 0 ? null : "Not all metadata could be copied (" + string.Join("; ", problems) + ")";
+        return problems.Count == 0 ? null : string.Format(CultureInfo.CurrentCulture, Messages.MetadataNotCopied, string.Join("; ", problems));
     }
 
     private static FileCopyResult DeleteSource(CopyItem item, FileCopyResult result)
@@ -429,7 +431,7 @@ public sealed class CopyJob
             return result with
             {
                 Status = FileCopyStatus.Failed,
-                Error = $"Copied, but the source could not be deleted: {ex.Message}",
+                Error = string.Format(CultureInfo.CurrentCulture, Messages.SourceNotDeleted, ex.Message),
             };
         }
     }

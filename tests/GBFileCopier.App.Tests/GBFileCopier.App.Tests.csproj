@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <Compile Include="..\GBFileCopier.Core.Tests\TempDirectory.cs" Link="TempDirectory.cs" />
+    <Compile Include="..\GBFileCopier.Core.Tests\EnglishCulture.cs" Link="EnglishCulture.cs" />
+    <Compile Include="..\GBFileCopier.Core.Tests\ResourceAssertions.cs" Link="ResourceAssertions.cs" />
   </ItemGroup>
 
   <ItemGroup>

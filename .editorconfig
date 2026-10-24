@@ -21,6 +21,8 @@ end_of_line = crlf
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_prefer_braces = true:suggestion
 dotnet_sort_system_directives_first = true
+# Format strings come from the localized resources and change with the language: caching them is wrong
+dotnet_diagnostic.CA1863.severity = none
 
 # Tests: Method_Condition_Expectation names are fine
 [tests/**.cs]

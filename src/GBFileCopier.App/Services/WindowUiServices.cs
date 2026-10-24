@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using GBFileCopier.App.Resources;
 using GBFileCopier.App.ViewModels;
 using GBFileCopier.App.Views;
 using GBFileCopier.Core.Copying;
@@ -16,7 +17,7 @@ internal sealed class WindowUiServices(Window window) : IUiServices
     {
         var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Add files",
+            Title = Strings.PickFilesTitle,
             AllowMultiple = true,
         });
         return LocalPaths(files);

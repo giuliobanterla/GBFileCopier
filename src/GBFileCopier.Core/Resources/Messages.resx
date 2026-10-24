@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="DriveNotSupported" xml:space="preserve">
+    <value>Copying a whole drive is not supported: select its contents instead</value>
+  </data>
+  <data name="SameSourceAndDestination" xml:space="preserve">
+    <value>Source and destination are the same</value>
+  </data>
+  <data name="DestinationInsideSource" xml:space="preserve">
+    <value>The destination is inside the source folder</value>
+  </data>
+  <data name="SourceDoesNotExist" xml:space="preserve">
+    <value>The source does not exist</value>
+  </data>
+  <data name="FolderCannotBeRead" xml:space="preserve">
+    <value>The folder cannot be read: {0}</value>
+  </data>
+  <data name="DestinationExists" xml:space="preserve">
+    <value>The destination already exists</value>
+  </data>
+  <data name="SourceChanged" xml:space="preserve">
+    <value>The source file changed while it was being copied</value>
+  </data>
+  <data name="VerificationFailed" xml:space="preserve">
+    <value>Verification failed: the copy does not match the source</value>
+  </data>
+  <data name="FolderExistsWithSameName" xml:space="preserve">
+    <value>A folder with the same name already exists</value>
+  </data>
+  <data name="SourceNotDeleted" xml:space="preserve">
+    <value>Copied, but the source could not be deleted: {0}</value>
+  </data>
+  <data name="MetadataNotCopied" xml:space="preserve">
+    <value>Not all metadata could be copied ({0})</value>
+  </data>
+  <data name="MetadataPermissions" xml:space="preserve">
+    <value>permissions</value>
+  </data>
+  <data name="MetadataModifiedTime" xml:space="preserve">
+    <value>modified time</value>
+  </data>
+  <data name="MetadataCreationTime" xml:space="preserve">
+    <value>creation time</value>
+  </data>
+  <data name="MetadataAttributes" xml:space="preserve">
+    <value>attributes</value>
+  </data>
+  <data name="CannotFlushToDisk" xml:space="preserve">
+    <value>Cannot flush the file to disk</value>
+  </data>
+</root>

@@ -30,6 +30,18 @@ exists you can replace it, skip it or keep both, also for all the following conf
 
 Files and folders passed on the command line are added to the list.
 
+### Languages
+
+The app is available in **English** and **Italian**. It follows the system language (on macOS the
+first of the preferred languages, not the region); to force one, set `GBFILECOPIER_LANG`, for
+example `GBFILECOPIER_LANG=it`. The command line stays in English, so that its output is stable
+for scripts.
+
+Translations live in `src/GBFileCopier.App/Resources/Strings.<language>.resx` (interface) and
+`src/GBFileCopier.Core/Resources/Messages.<language>.resx` (error messages). To add a language,
+copy the two English `.resx` files with the language code in the name and translate the values;
+the tests check that no text is missing and that the `{0}` placeholders match.
+
 ## Command line
 
 ```

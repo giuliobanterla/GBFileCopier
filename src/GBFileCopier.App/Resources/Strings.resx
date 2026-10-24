@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="FilesAndFolders" xml:space="preserve">
+    <value>Files and folders</value>
+  </data>
+  <data name="AddFiles" xml:space="preserve">
+    <value>Add files…</value>
+  </data>
+  <data name="AddFolder" xml:space="preserve">
+    <value>Add folder…</value>
+  </data>
+  <data name="Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="PasteTip" xml:space="preserve">
+    <value>Paste the files copied in the Finder or Explorer (⌘V / Ctrl+V). ⌥⌘V pastes them to move.</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="DropHere" xml:space="preserve">
+    <value>Drop files and folders here</value>
+  </data>
+  <data name="DropHint" xml:space="preserve">
+    <value>or paste what you copied in the Finder / Explorer with ⌘V / Ctrl+V</value>
+  </data>
+  <data name="Destination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="DestinationPlaceholder" xml:space="preserve">
+    <value>Folder where the files go (you can also drop it here)</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
+  <data name="VerifyAfterCopying" xml:space="preserve">
+    <value>Verify after copying</value>
+  </data>
+  <data name="VerifyTip" xml:space="preserve">
+    <value>Read every copy back from the disk and compare its checksum with the original</value>
+  </data>
+  <data name="Checksum" xml:space="preserve">
+    <value>Checksum</value>
+  </data>
+  <data name="IfFileExists" xml:space="preserve">
+    <value>If a file exists</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Move" xml:space="preserve">
+    <value>Move</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Results" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="ShowAllFiles" xml:space="preserve">
+    <value>Show all files</value>
+  </data>
+  <data name="ConflictTitle" xml:space="preserve">
+    <value>File already exists</value>
+  </data>
+  <data name="AlreadyExistsIn" xml:space="preserve">
+    <value>already exists in {0}</value>
+  </data>
+  <data name="Existing" xml:space="preserve">
+    <value>Existing</value>
+  </data>
+  <data name="New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="ApplyToNextConflicts" xml:space="preserve">
+    <value>Do the same for the next conflicts</value>
+  </data>
+  <data name="KeepBoth" xml:space="preserve">
+    <value>Keep both</value>
+  </data>
+  <data name="KeepBothTip" xml:space="preserve">
+    <value>Save the new file as "name (2)"</value>
+  </data>
+  <data name="Skip" xml:space="preserve">
+    <value>Skip</value>
+  </data>
+  <data name="Replace" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="NewIsMoreRecent" xml:space="preserve">
+    <value>The new file is more recent</value>
+  </data>
+  <data name="ExistingIsMoreRecent" xml:space="preserve">
+    <value>The existing file is more recent</value>
+  </data>
+  <data name="SameModificationDate" xml:space="preserve">
+    <value>Same modification date</value>
+  </data>
+  <data name="SizeAndModified" xml:space="preserve">
+    <value>{0}  ·  modified {1}</value>
+  </data>
+  <data name="IdleStatus" xml:space="preserve">
+    <value>Add files and folders, choose a destination, then Copy or Move</value>
+  </data>
+  <data name="PickFilesTitle" xml:space="preserve">
+    <value>Add files</value>
+  </data>
+  <data name="PickFoldersTitle" xml:space="preserve">
+    <value>Add folders</value>
+  </data>
+  <data name="PickDestinationTitle" xml:space="preserve">
+    <value>Choose the destination folder</value>
+  </data>
+  <data name="NoFilesOnClipboard" xml:space="preserve">
+    <value>There are no files on the clipboard: copy them in the Finder or in Explorer first</value>
+  </data>
+  <data name="PastedThenMove" xml:space="preserve">
+    <value>Items pasted: {0}. Choose the destination, then Move</value>
+  </data>
+  <data name="PastedThenCopy" xml:space="preserve">
+    <value>Items pasted: {0}. Choose the destination, then Copy</value>
+  </data>
+  <data name="Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Cancelling" xml:space="preserve">
+    <value>Cancelling…</value>
+  </data>
+  <data name="Scanning" xml:space="preserve">
+    <value>Scanning…</value>
+  </data>
+  <data name="VerifyingFile" xml:space="preserve">
+    <value>Verifying {0}</value>
+  </data>
+  <data name="CopyingFile" xml:space="preserve">
+    <value>Copying {0}</value>
+  </data>
+  <data name="Finishing" xml:space="preserve">
+    <value>Finishing…</value>
+  </data>
+  <data name="ProgressDetail" xml:space="preserve">
+    <value>File {0} of {1}  ·  {2}/s</value>
+  </data>
+  <data name="TimeLeft" xml:space="preserve">
+    <value>{0} left</value>
+  </data>
+  <data name="Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="FinishedWithErrors" xml:space="preserve">
+    <value>Finished with errors</value>
+  </data>
+  <data name="Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="SummaryCopied" xml:space="preserve">
+    <value>Copied: {0} ({1})</value>
+  </data>
+  <data name="SummaryMoved" xml:space="preserve">
+    <value>Moved: {0} ({1})</value>
+  </data>
+  <data name="SummaryVerified" xml:space="preserve">
+    <value>verified: {0}</value>
+  </data>
+  <data name="SummarySkipped" xml:space="preserve">
+    <value>skipped: {0}</value>
+  </data>
+  <data name="SummaryFailed" xml:space="preserve">
+    <value>failed: {0}</value>
+  </data>
+  <data name="SummaryNotProcessed" xml:space="preserve">
+    <value>not processed: {0}</value>
+  </data>
+  <data name="StatusMoved" xml:space="preserve">
+    <value>Moved</value>
+  </data>
+  <data name="StatusMovedVerified" xml:space="preserve">
+    <value>Moved, verified</value>
+  </data>
+  <data name="StatusVerified" xml:space="preserve">
+    <value>Verified</value>
+  </data>
+  <data name="StatusCopied" xml:space="preserve">
+    <value>Copied</value>
+  </data>
+  <data name="StatusSkipped" xml:space="preserve">
+    <value>Skipped</value>
+  </data>
+  <data name="StatusFailed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="StatusNotProcessed" xml:space="preserve">
+    <value>Not processed</value>
+  </data>
+  <data name="Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="NotFound" xml:space="preserve">
+    <value>Not found</value>
+  </data>
+  <data name="HashFastest" xml:space="preserve">
+    <value>xxHash3 (fastest)</value>
+  </data>
+  <data name="HashNone" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="ConflictAsk" xml:space="preserve">
+    <value>Ask</value>
+  </data>
+  <data name="ConflictOverwriteIfNewer" xml:space="preserve">
+    <value>Overwrite if newer</value>
+  </data>
+  <data name="ConflictOverwrite" xml:space="preserve">
+    <value>Overwrite</value>
+  </data>
+  <data name="ConflictSkip" xml:space="preserve">
+    <value>Skip</value>
+  </data>
+  <data name="ConflictKeepBoth" xml:space="preserve">
+    <value>Keep both</value>
+  </data>
+</root>
