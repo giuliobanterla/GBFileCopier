@@ -1,3 +1,6 @@
+using System.Globalization;
+using GBFileCopier.Core.Resources;
+
 namespace GBFileCopier.Core.Copying;
 
 /// <summary>A file, folder or symbolic link to recreate at the destination.</summary>
@@ -65,13 +68,13 @@ internal static class CopyPlanner
 
         if (name.Length == 0)
         {
-            plan.Errors.Add(new(sourcePath, destinationRoot, "Copying a whole drive is not supported: select its contents instead"));
+            plan.Errors.Add(new(sourcePath, destinationRoot, Messages.DriveNotSupported));
             return;
         }
 
         if (string.Equals(sourcePath, target, PathComparison))
         {
-            plan.Errors.Add(new(sourcePath, target, "Source and destination are the same"));
+            plan.Errors.Add(new(sourcePath, target, Messages.SameSourceAndDestination));
             return;
         }
 
@@ -92,7 +95,7 @@ internal static class CopyPlanner
         {
             if (IsSameOrInside(destinationRoot, sourcePath))
             {
-                plan.Errors.Add(new(sourcePath, target, "The destination is inside the source folder"));
+                plan.Errors.Add(new(sourcePath, target, Messages.DestinationInsideSource));
                 return;
             }
 
@@ -100,7 +103,7 @@ internal static class CopyPlanner
         }
         else
         {
-            plan.Errors.Add(new(sourcePath, target, "The source does not exist"));
+            plan.Errors.Add(new(sourcePath, target, Messages.SourceDoesNotExist));
         }
     }
 
@@ -116,7 +119,7 @@ internal static class CopyPlanner
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            plan.Errors.Add(new(directory.FullName, target, $"The folder cannot be read: {ex.Message}"));
+            plan.Errors.Add(new(directory.FullName, target, string.Format(CultureInfo.CurrentCulture, Messages.FolderCannotBeRead, ex.Message)));
             return;
         }
 

@@ -1,3 +1,5 @@
+using System.Globalization;
+using GBFileCopier.App.Resources;
 using GBFileCopier.Core;
 using GBFileCopier.Core.Copying;
 using GBFileCopier.Core.Hashing;
@@ -13,9 +15,9 @@ public sealed class SourceItem
         Name = System.IO.Path.GetFileName(Path) is { Length: > 0 } name ? name : Path;
         Folder = System.IO.Path.GetDirectoryName(Path) ?? string.Empty;
         IsFolder = Directory.Exists(Path);
-        Details = IsFolder ? "Folder"
-            : File.Exists(Path) ? ByteSize.Format(new FileInfo(Path).Length)
-            : "Not found";
+        Details = IsFolder ? Strings.Folder
+            : File.Exists(Path) ? ByteSize.Format(new FileInfo(Path).Length, CultureInfo.CurrentCulture)
+            : Strings.NotFound;
     }
 
     public string Path { get; }
@@ -41,12 +43,12 @@ public sealed class ResultItem(FileCopyResult result, CopyMode mode)
 
     public string Status { get; } = result.Status switch
     {
-        FileCopyStatus.Succeeded when result.Renamed => "Moved",
-        FileCopyStatus.Succeeded when result.Verified => mode == CopyMode.Move ? "Moved, verified" : "Verified",
-        FileCopyStatus.Succeeded => mode == CopyMode.Move ? "Moved" : "Copied",
-        FileCopyStatus.Skipped => "Skipped",
-        FileCopyStatus.Failed => "Failed",
-        _ => "Not processed",
+        FileCopyStatus.Succeeded when result.Renamed => Strings.StatusMoved,
+        FileCopyStatus.Succeeded when result.Verified => mode == CopyMode.Move ? Strings.StatusMovedVerified : Strings.StatusVerified,
+        FileCopyStatus.Succeeded => mode == CopyMode.Move ? Strings.StatusMoved : Strings.StatusCopied,
+        FileCopyStatus.Skipped => Strings.StatusSkipped,
+        FileCopyStatus.Failed => Strings.StatusFailed,
+        _ => Strings.StatusNotProcessed,
     };
 
     /// <summary>The error or warning, otherwise the destination and the checksum.</summary>
@@ -62,27 +64,29 @@ public sealed class ResultItem(FileCopyResult result, CopyMode mode)
 
 public sealed record HashOption(HashAlgorithmKind Kind, string Label)
 {
-    public static IReadOnlyList<HashOption> All { get; } =
+    /// <summary>A new list each time: the labels follow the current UI language.</summary>
+    public static IReadOnlyList<HashOption> CreateAll() =>
     [
-        new(HashAlgorithmKind.XxHash3, "xxHash3 (fastest)"),
+        new(HashAlgorithmKind.XxHash3, Strings.HashFastest),
         new(HashAlgorithmKind.XxHash128, "xxHash128"),
         new(HashAlgorithmKind.Crc32, "CRC32"),
         new(HashAlgorithmKind.Md5, "MD5"),
         new(HashAlgorithmKind.Sha1, "SHA-1"),
         new(HashAlgorithmKind.Sha256, "SHA-256"),
         new(HashAlgorithmKind.Sha512, "SHA-512"),
-        new(HashAlgorithmKind.None, "None"),
+        new(HashAlgorithmKind.None, Strings.HashNone),
     ];
 }
 
 public sealed record ConflictOption(ConflictPolicy Policy, string Label)
 {
-    public static IReadOnlyList<ConflictOption> All { get; } =
+    /// <summary>A new list each time: the labels follow the current UI language.</summary>
+    public static IReadOnlyList<ConflictOption> CreateAll() =>
     [
-        new(ConflictPolicy.Ask, "Ask"),
-        new(ConflictPolicy.OverwriteIfNewer, "Overwrite if newer"),
-        new(ConflictPolicy.Overwrite, "Overwrite"),
-        new(ConflictPolicy.Skip, "Skip"),
-        new(ConflictPolicy.KeepBoth, "Keep both"),
+        new(ConflictPolicy.Ask, Strings.ConflictAsk),
+        new(ConflictPolicy.OverwriteIfNewer, Strings.ConflictOverwriteIfNewer),
+        new(ConflictPolicy.Overwrite, Strings.ConflictOverwrite),
+        new(ConflictPolicy.Skip, Strings.ConflictSkip),
+        new(ConflictPolicy.KeepBoth, Strings.ConflictKeepBoth),
     ];
 }

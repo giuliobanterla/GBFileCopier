@@ -26,7 +26,10 @@ public sealed class ScreenshotTests : IDisposable
     [AvaloniaTheory]
     [InlineData("Light")]
     [InlineData("Dark")]
-    public async Task MainWindow_AfterACopyWithProblems(string theme)
+    public Task MainWindow_AfterACopyWithProblems(string theme) =>
+        RenderMainWindowAsync(theme, $"main-{theme.ToLowerInvariant()}.png");
+
+    private async Task RenderMainWindowAsync(string theme, string fileName)
     {
         SetTheme(theme);
         var viewModel = new MainViewModel(new FakeUiServices());
@@ -41,7 +44,21 @@ public sealed class ScreenshotTests : IDisposable
         viewModel.Verify = true;
         await viewModel.CopyCommand.ExecuteAsync(null);
 
-        Save(new MainWindow { DataContext = viewModel }, $"main-{theme.ToLowerInvariant()}.png");
+        Save(new MainWindow { DataContext = viewModel }, fileName);
+    }
+
+    [AvaloniaFact]
+    public async Task MainWindow_InItalian()
+    {
+        using var italian = EnglishCulture.Use("it");
+        await RenderMainWindowAsync("Light", "main-italian.png");
+    }
+
+    [AvaloniaFact]
+    public void ConflictWindow_InItalian()
+    {
+        using var italian = EnglishCulture.Use("it");
+        RenderConflictWindow("conflict-italian.png");
     }
 
     [AvaloniaFact]
@@ -52,13 +69,15 @@ public sealed class ScreenshotTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void ConflictWindow()
+    public void ConflictWindow() => RenderConflictWindow("conflict.png");
+
+    private static void RenderConflictWindow(string fileName)
     {
         SetTheme("Light");
         var now = DateTime.UtcNow;
         var conflict = new FileConflict(
             "/Users/me/Photos/IMG_0001.jpg", "/Volumes/Backup/Photos/IMG_0001.jpg", 3_400_000, now, 3_100_000, now.AddDays(-3));
-        Save(new ConflictWindow { DataContext = new ConflictViewModel(conflict) }, "conflict.png");
+        Save(new ConflictWindow { DataContext = new ConflictViewModel(conflict) }, fileName);
     }
 
     private static void SetTheme(string theme) =>

@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GBFileCopier.App.Resources;
 using GBFileCopier.App.Services;
 using GBFileCopier.Core;
 using GBFileCopier.Core.Copying;
@@ -10,8 +12,6 @@ namespace GBFileCopier.App.ViewModels;
 
 public sealed partial class MainViewModel : ViewModelBase, IDisposable
 {
-    private const string IdleStatus = "Add files and folders, choose a destination, then Copy or Move";
-
     private readonly IUiServices _ui;
     private readonly List<ResultItem> _allResults = [];
     private CopyJob? _job;
@@ -22,6 +22,8 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     public MainViewModel(IUiServices ui)
     {
         _ui = ui;
+        SelectedHash = HashOptions[0];
+        SelectedConflict = ConflictOptions[0];
         Sources.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasSources));
@@ -45,18 +47,18 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     [NotifyCanExecuteChangedFor(nameof(CopyCommand), nameof(MoveCommand))]
     public partial string Destination { get; set; } = string.Empty;
 
-    public IReadOnlyList<HashOption> HashOptions { get; } = HashOption.All;
+    public IReadOnlyList<HashOption> HashOptions { get; } = HashOption.CreateAll();
 
-    public IReadOnlyList<ConflictOption> ConflictOptions { get; } = ConflictOption.All;
+    public IReadOnlyList<ConflictOption> ConflictOptions { get; } = ConflictOption.CreateAll();
 
     [ObservableProperty]
     public partial bool Verify { get; set; }
 
     [ObservableProperty]
-    public partial HashOption SelectedHash { get; set; } = HashOption.All[0];
+    public partial HashOption SelectedHash { get; set; }
 
     [ObservableProperty]
-    public partial ConflictOption SelectedConflict { get; set; } = ConflictOption.All[0];
+    public partial ConflictOption SelectedConflict { get; set; }
 
     /// <summary>The sources were cut (or pasted with ⌥⌘V): Move becomes the default button.</summary>
     [ObservableProperty]
@@ -73,7 +75,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(PauseLabel))]
     public partial bool IsPaused { get; set; }
 
-    public string PauseLabel => IsPaused ? "Resume" : "Pause";
+    public string PauseLabel => IsPaused ? Strings.Resume : Strings.Pause;
 
     /// <summary>A job has run: the progress and results panel is visible.</summary>
     [ObservableProperty]
@@ -83,7 +85,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     public partial double ProgressPercent { get; set; }
 
     [ObservableProperty]
-    public partial string StatusText { get; set; } = IdleStatus;
+    public partial string StatusText { get; set; } = Strings.IdleStatus;
 
     [ObservableProperty]
     public partial string DetailText { get; set; } = string.Empty;
@@ -123,12 +125,12 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     private async Task AddFilesAsync() => AddSources(await _ui.PickFilesAsync());
 
     [RelayCommand]
-    private async Task AddFolderAsync() => AddSources(await _ui.PickFoldersAsync("Add folders", allowMultiple: true));
+    private async Task AddFolderAsync() => AddSources(await _ui.PickFoldersAsync(Strings.PickFoldersTitle, allowMultiple: true));
 
     [RelayCommand]
     private async Task BrowseDestinationAsync()
     {
-        var folders = await _ui.PickFoldersAsync("Choose the destination folder", allowMultiple: false);
+        var folders = await _ui.PickFoldersAsync(Strings.PickDestinationTitle, allowMultiple: false);
         if (folders.Count > 0)
         {
             Destination = folders[0];
@@ -145,16 +147,14 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         var clipboard = _ui.ReadClipboard();
         if (clipboard is null)
         {
-            StatusText = "There are no files on the clipboard: copy them in the Finder or in Explorer first";
+            StatusText = Strings.NoFilesOnClipboard;
             return;
         }
 
         AddSources(clipboard.Paths);
         _sourcesFromCut = clipboard.IsCut;
         PreferMove = move || clipboard.IsCut;
-        StatusText = PreferMove
-            ? $"{clipboard.Paths.Count} item(s) pasted: choose the destination, then Move"
-            : $"{clipboard.Paths.Count} item(s) pasted: choose the destination, then Copy";
+        StatusText = string.Format(CultureInfo.CurrentCulture, PreferMove ? Strings.PastedThenMove : Strings.PastedThenCopy, clipboard.Paths.Count);
     }
 
     [RelayCommand(CanExecute = nameof(CanRemove))]
@@ -209,14 +209,14 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         {
             _job.Pause();
             IsPaused = true;
-            StatusText = "Paused";
+            StatusText = Strings.Paused;
         }
     }
 
     [RelayCommand(CanExecute = nameof(IsRunning))]
     private void Cancel()
     {
-        StatusText = "Cancelling…";
+        StatusText = Strings.Cancelling;
         _cancellation?.Cancel();
     }
 
@@ -247,7 +247,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         ProblemCount = 0;
         ProgressPercent = 0;
         DetailText = string.Empty;
-        StatusText = "Scanning…";
+        StatusText = Strings.Scanning;
         _conflictAnswerForAll = null;
         HasRun = true;
         IsRunning = true;
@@ -287,16 +287,16 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
         StatusText = progress.Phase switch
         {
-            CopyPhase.Scanning => "Scanning…",
-            CopyPhase.Verifying => $"Verifying {Path.GetFileName(progress.CurrentFile)}",
-            CopyPhase.Finished => "Finishing…",
-            _ => $"Copying {Path.GetFileName(progress.CurrentFile)}",
+            CopyPhase.Scanning => Strings.Scanning,
+            CopyPhase.Verifying => string.Format(CultureInfo.CurrentCulture, Strings.VerifyingFile, Path.GetFileName(progress.CurrentFile)),
+            CopyPhase.Finished => Strings.Finishing,
+            _ => string.Format(CultureInfo.CurrentCulture, Strings.CopyingFile, Path.GetFileName(progress.CurrentFile)),
         };
 
         var speed = progress.BytesPerSecond;
         var remaining = speed > 0 ? TimeSpan.FromSeconds((progress.TotalBytes - progress.ProcessedBytes) / speed) : (TimeSpan?)null;
-        DetailText = $"{progress.CompletedFiles} of {progress.TotalFiles} files  ·  {ByteSize.Format(speed)}/s" +
-                     (remaining is { } r && progress.ProcessedBytes > 0 ? $"  ·  {FormatDuration(r)} left" : string.Empty);
+        DetailText = string.Format(CultureInfo.CurrentCulture, Strings.ProgressDetail, progress.CompletedFiles, progress.TotalFiles, ByteSize.Format(speed, CultureInfo.CurrentCulture)) +
+                     (remaining is { } r && progress.ProcessedBytes > 0 ? "  ·  " + string.Format(CultureInfo.CurrentCulture, Strings.TimeLeft, FormatDuration(r)) : string.Empty);
     }
 
     private async ValueTask<ConflictAction> ResolveConflictAsync(FileConflict conflict, CancellationToken cancellationToken)
@@ -323,18 +323,29 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         ShowAllResults = ProblemCount == 0;
         RefreshResults();
 
-        var verb = result.Mode == CopyMode.Move ? "moved" : "copied";
         var verified = result.Files.Count(f => f.Verified);
-        Summary = $"{result.SucceededCount} {verb} ({ByteSize.Format(result.CopiedBytes)})" +
-                  (verified > 0 ? $", {verified} verified" : string.Empty) +
-                  (result.SkippedCount > 0 ? $", {result.SkippedCount} skipped" : string.Empty) +
-                  (result.FailedCount > 0 ? $", {result.FailedCount} failed" : string.Empty) +
-                  (result.CancelledCount > 0 ? $", {result.CancelledCount} not processed" : string.Empty) +
-                  $"  ·  {FormatDuration(result.Elapsed)}";
+        var parts = new List<string>
+        {
+            string.Format(CultureInfo.CurrentCulture, result.Mode == CopyMode.Move ? Strings.SummaryMoved : Strings.SummaryCopied,
+                result.SucceededCount, ByteSize.Format(result.CopiedBytes, CultureInfo.CurrentCulture)),
+        };
+        void AddPart(int count, string format)
+        {
+            if (count > 0)
+            {
+                parts.Add(string.Format(CultureInfo.CurrentCulture, format, count));
+            }
+        }
 
-        StatusText = result.WasCancelled ? "Cancelled"
-            : result.FailedCount > 0 ? "Finished with errors"
-            : "Done";
+        AddPart(verified, Strings.SummaryVerified);
+        AddPart(result.SkippedCount, Strings.SummarySkipped);
+        AddPart(result.FailedCount, Strings.SummaryFailed);
+        AddPart(result.CancelledCount, Strings.SummaryNotProcessed);
+        Summary = string.Join(", ", parts) + "  ·  " + FormatDuration(result.Elapsed);
+
+        StatusText = result.WasCancelled ? Strings.Cancelled
+            : result.FailedCount > 0 ? Strings.FinishedWithErrors
+            : Strings.Done;
         DetailText = string.Empty;
         if (!result.WasCancelled)
         {
@@ -370,7 +381,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     private static string FormatDuration(TimeSpan duration) =>
-        duration.TotalHours >= 1 ? duration.ToString(@"h\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)
-        : duration.TotalSeconds >= 1 ? duration.ToString(@"m\:ss", System.Globalization.CultureInfo.InvariantCulture)
+        duration.TotalHours >= 1 ? duration.ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture)
+        : duration.TotalSeconds >= 1 ? duration.ToString(@"m\:ss", CultureInfo.InvariantCulture)
         : "0:00";
 }

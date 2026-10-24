@@ -1,33 +1,34 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:GBFileCopier.App.ViewModels"
+        xmlns:res="using:GBFileCopier.App.Resources"
         x:Class="GBFileCopier.App.Views.ConflictWindow"
         x:DataType="vm:ConflictViewModel"
-        Title="File already exists"
+        Title="{x:Static res:Strings.ConflictTitle}"
         Width="520" SizeToContent="Height" CanResize="False"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
 
   <StackPanel Margin="20" Spacing="14">
     <StackPanel Spacing="2">
       <TextBlock Text="{Binding FileName}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-      <TextBlock Classes="subtle" Text="{Binding Folder, StringFormat='already exists in {0}'}" TextWrapping="Wrap" />
+      <TextBlock Classes="subtle" Text="{Binding AlreadyExistsIn}" TextWrapping="Wrap" />
     </StackPanel>
 
     <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
-      <TextBlock Text="Existing" FontWeight="SemiBold" />
+      <TextBlock Text="{x:Static res:Strings.Existing}" FontWeight="SemiBold" />
       <TextBlock Grid.Column="1" Text="{Binding ExistingDetails}" />
-      <TextBlock Grid.Row="1" Text="New" FontWeight="SemiBold" />
+      <TextBlock Grid.Row="1" Text="{x:Static res:Strings.New}" FontWeight="SemiBold" />
       <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding NewDetails}" />
       <TextBlock Grid.Row="2" Grid.Column="1" Classes="subtle" Text="{Binding Comparison}" />
     </Grid>
 
-    <CheckBox Content="Do the same for the next conflicts" IsChecked="{Binding ApplyToAll}" />
+    <CheckBox Content="{x:Static res:Strings.ApplyToNextConflicts}" IsChecked="{Binding ApplyToAll}" />
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-      <Button Content="Keep both" Command="{Binding KeepBothCommand}"
-              ToolTip.Tip="Save the new file as &quot;name (2)&quot;" />
-      <Button Content="Skip" Command="{Binding SkipCommand}" IsCancel="True" />
-      <Button Classes="accent" Content="Replace" Command="{Binding OverwriteCommand}" IsDefault="True" />
+      <Button Content="{x:Static res:Strings.KeepBoth}" Command="{Binding KeepBothCommand}"
+              ToolTip.Tip="{x:Static res:Strings.KeepBothTip}" />
+      <Button Content="{x:Static res:Strings.Skip}" Command="{Binding SkipCommand}" IsCancel="True" />
+      <Button Classes="accent" Content="{x:Static res:Strings.Replace}" Command="{Binding OverwriteCommand}" IsDefault="True" />
     </StackPanel>
   </StackPanel>
 </Window>

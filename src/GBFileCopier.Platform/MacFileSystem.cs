@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using GBFileCopier.Core.Copying;
+using GBFileCopier.Core.Resources;
 using Microsoft.Win32.SafeHandles;
 
 namespace GBFileCopier.Platform;
@@ -46,7 +47,7 @@ internal sealed partial class MacFileSystem : IFileSystemPlatform
         // Not supported by every file system (for example SMB shares): plain fsync
         if (fsync(Fd(handle)) != 0)
         {
-            throw NewIOException("Cannot flush the file to disk");
+            throw NewIOException(Messages.CannotFlushToDisk);
         }
     }
 

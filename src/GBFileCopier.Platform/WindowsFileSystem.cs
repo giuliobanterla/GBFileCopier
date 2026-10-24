@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using GBFileCopier.Core.Copying;
+using GBFileCopier.Core.Resources;
 using Microsoft.Win32.SafeHandles;
 
 namespace GBFileCopier.Platform;
@@ -26,7 +27,7 @@ internal sealed partial class WindowsFileSystem : IFileSystemPlatform
     {
         if (!FlushFileBuffers(handle))
         {
-            throw NewIOException("Cannot flush the file to disk");
+            throw NewIOException(Messages.CannotFlushToDisk);
         }
     }
 
