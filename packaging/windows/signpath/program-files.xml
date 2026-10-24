@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration "program-files": the folder uploaded by the release workflow
+     (a zip made by actions/upload-artifact). Only our own programs are signed. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="GBFileCopier.exe" product-name="GBFileCopier">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="gbcopy.exe" product-name="GBFileCopier">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

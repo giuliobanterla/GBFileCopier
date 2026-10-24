@@ -95,7 +95,8 @@ jobs:
     name: windows-package
     needs: version
     runs-on: windows-2025
-    timeout-minutes: 45
+    # Signing waits for the manual approval of each request in SignPath
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -107,9 +108,93 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Signing with SignPath (see packaging/windows/signpath): only when the repository is configured for
+      # it, and never on pull requests. Tags use the release certificate, manual runs the test one.
+      - name: Signing configuration
+        id: signing
+        shell: bash
+        env:
+          ORGANIZATION: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          HAS_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+        run: |
+          if [ -n "$ORGANIZATION" ] && [ "$HAS_TOKEN" = true ] && [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            if [[ "$GITHUB_REF" == refs/tags/v* ]]; then policy=release-signing; else policy=test-signing; fi
+            echo "policy=$policy" >> "$GITHUB_OUTPUT"
+            echo "Signing with SignPath, policy $policy"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Not signing (SignPath not configured, or a pull request)"
+          fi
+
+      - name: Build the program files
+        shell: pwsh
+        run: packaging/windows/build.ps1 -Version "${{ needs.version.outputs.version }}" -Output artifacts -Stage Files
+
+      - name: Upload the program files to sign
+        id: upload-files
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unsigned-files-windows
+          path: artifacts/files/
+          retention-days: 1
+
+      - name: Sign the program files
+        if: steps.signing.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ steps.signing.outputs.policy }}
+          artifact-configuration-slug: program-files
+          github-artifact-id: ${{ steps.upload-files.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: artifacts/files
+
       - name: Build the installer and the portable zip
         shell: pwsh
-        run: packaging/windows/build.ps1 -Version "${{ needs.version.outputs.version }}" -Output artifacts
+        run: packaging/windows/build.ps1 -Version "${{ needs.version.outputs.version }}" -Output artifacts -Stage Package
+
+      - name: Upload the installer to sign
+        id: upload-installer
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: artifacts/GBFileCopier-${{ needs.version.outputs.version }}-windows-x64-setup.exe
+          archive: false
+          retention-days: 1
+
+      - name: Sign the installer
+        if: steps.signing.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ steps.signing.outputs.policy }}
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.upload-installer.outputs.artifact-id }}
+          skip-decompress: true
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: artifacts
+
+      - name: Check the signatures
+        if: steps.signing.outputs.enabled == 'true'
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem artifacts/*-setup.exe | Select-Object -First 1
+          Expand-Archive (Get-ChildItem artifacts/*-windows-x64.zip | Select-Object -First 1) -DestinationPath "$env:RUNNER_TEMP/zip"
+          foreach ($file in $setup.FullName, "$env:RUNNER_TEMP/zip/GBFileCopier.exe", "$env:RUNNER_TEMP/zip/gbcopy.exe") {
+            $signature = Get-AuthenticodeSignature $file
+            Write-Host "$(Split-Path $file -Leaf): $($signature.Status) $($signature.SignerCertificate.Subject)"
+            # The test certificate is not trusted: for it, just check that a signature is there
+            if (-not $signature.SignerCertificate) { throw "$file is not signed" }
+            if ('${{ steps.signing.outputs.policy }}' -eq 'release-signing' -and $signature.Status -ne 'Valid') { throw "${file}: $($signature.Status)" }
+          }
 
       - name: Smoke test the installer
         shell: pwsh
@@ -170,5 +255,7 @@ jobs:
         run: |
           prerelease=""
           [[ "$VERSION" == *-* ]] && prerelease="--prerelease"
+          # The SignPath Foundation terms ask for the code signing policy to be linked from the release pages
+          notes="Download the package for your system below. How the files are built and signed: [Code signing policy](https://github.com/$GITHUB_REPOSITORY/blob/main/CODE_SIGNING_POLICY.md)."
           gh release create "$GITHUB_REF_NAME" packages/* --repo "$GITHUB_REPOSITORY" \
-            --title "GBFileCopier $VERSION" --generate-notes $prerelease
+            --title "GBFileCopier $VERSION" --notes "$notes" --generate-notes $prerelease

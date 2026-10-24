@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration "installer": the setup program, uploaded by the release workflow
+     as a single file (upload-artifact with archive: false). -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <pe-file path="GBFileCopier-*-windows-x64-setup.exe" product-name="GBFileCopier">
+    <authenticode-sign />
+  </pe-file>
+</artifact-configuration>
