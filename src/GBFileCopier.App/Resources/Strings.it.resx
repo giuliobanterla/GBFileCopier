@@ -286,4 +286,16 @@
   <data name="AboutLicense" xml:space="preserve">
     <value>Software libero distribuito con licenza GNU General Public License, versione 3 o successiva.</value>
   </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Tema</value>
+  </data>
+  <data name="ThemeSystem" xml:space="preserve">
+    <value>Come il sistema</value>
+  </data>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>Chiaro</value>
+  </data>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>Scuro</value>
+  </data>
 </root>

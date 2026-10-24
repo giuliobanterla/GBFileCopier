@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     public async void ShowSettings()
     {
         var location = SettingsStore is SettingsStore file ? file.FilePath : null;
-        await new SettingsWindow { DataContext = new SettingsViewModel(SettingsStore, location) }.ShowDialog(this);
+        await new SettingsWindow { DataContext = new SettingsViewModel(SettingsStore, location, App.ApplyTheme) }.ShowDialog(this);
     }
 
     public async void ShowAbout() => await new AboutWindow().ShowDialog(this);

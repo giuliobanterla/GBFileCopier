@@ -297,6 +297,18 @@ public static class Strings
     /// <summary>Free software released under the GNU General Public License, version 3 or later.</summary>
     public static string AboutLicense => Get();
 
+    /// <summary>Theme</summary>
+    public static string Theme => Get();
+
+    /// <summary>Same as the system</summary>
+    public static string ThemeSystem => Get();
+
+    /// <summary>Light</summary>
+    public static string ThemeLight => Get();
+
+    /// <summary>Dark</summary>
+    public static string ThemeDark => Get();
+
     private static string Get([CallerMemberName] string name = "") =>
         Resources.GetString(name, CultureInfo.CurrentUICulture) ?? name;
 }

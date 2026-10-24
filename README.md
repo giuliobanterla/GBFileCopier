@@ -35,6 +35,9 @@ The app remembers the last destination, the options and the window size, in
 `%APPDATA%\GBFileCopier\settings.json` (Windows). On macOS About and Settings (⌘,) are in the
 application menu; on Windows in the File and Help menus.
 
+The app follows the light or dark appearance of the system; Settings can force light or dark
+instead, with immediate effect.
+
 ### Languages
 
 The app is available in **English** and **Italian**. It follows the system language (on macOS the

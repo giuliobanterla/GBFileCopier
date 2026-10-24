@@ -118,6 +118,41 @@ public sealed class SettingsTests : IDisposable
         Assert.True(viewModel.NeedsRestart);
     }
 
+    [AvaloniaFact]
+    public void SettingsViewModel_AppliesTheThemeRightAway()
+    {
+        var store = new FakeSettingsStore { Saved = new AppSettings { Language = "it" } };
+        var applied = new List<ThemeChoice>();
+        var viewModel = new SettingsViewModel(store, applyTheme: applied.Add);
+        Assert.Equal(ThemeChoice.System, viewModel.SelectedTheme.Theme);
+        Assert.Equal(0, store.SaveCount); // opening the window changes nothing
+
+        viewModel.SelectedTheme = viewModel.Themes.First(t => t.Theme == ThemeChoice.Dark);
+
+        Assert.Equal([ThemeChoice.Dark], applied);
+        Assert.Equal(ThemeChoice.Dark, store.Saved.Theme);
+        Assert.Equal("it", store.Saved.Language);
+        Assert.False(viewModel.NeedsRestart); // unlike the language
+    }
+
+    [AvaloniaTheory]
+    [InlineData(ThemeChoice.Light, "Light")]
+    [InlineData(ThemeChoice.Dark, "Dark")]
+    [InlineData(ThemeChoice.System, "Default")]
+    public void App_ApplyTheme_SetsTheVariant(ThemeChoice theme, string expected)
+    {
+        var previous = Avalonia.Application.Current!.RequestedThemeVariant;
+        try
+        {
+            App.ApplyTheme(theme);
+            Assert.Equal(expected, Avalonia.Application.Current.RequestedThemeVariant?.Key.ToString());
+        }
+        finally
+        {
+            Avalonia.Application.Current.RequestedThemeVariant = previous;
+        }
+    }
+
     [Fact]
     public void UiLanguage_ConfiguredLanguageWinsOverTheSystem()
     {
