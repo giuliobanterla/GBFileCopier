@@ -1,4 +1,4 @@
-namespace GBFileCopier.Core.Tests;
+namespace GBFileCopier.Tests;
 
 /// <summary>A unique folder for one test, deleted at the end.</summary>
 internal sealed class TempDirectory : IDisposable

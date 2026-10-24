@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using GBFileCopier.Core.Hashing;
-using Microsoft.Win32.SafeHandles;
 
 namespace GBFileCopier.Core.Copying;
 
@@ -13,6 +12,9 @@ namespace GBFileCopier.Core.Copying;
 /// </summary>
 internal static class FilePipeline
 {
+    /// <summary>Alignment required by unbuffered I/O: a memory page, a multiple of every sector size.</summary>
+    public const int Alignment = 4096;
+
     private readonly record struct Block(byte[] Buffer, int Length);
 
     /// <returns>Bytes copied and the checksum of the source (null without an algorithm).</returns>
@@ -21,6 +23,7 @@ internal static class FilePipeline
         string destinationPath,
         long expectedLength,
         CopyOptions options,
+        IFileSystemPlatform platform,
         PauseController pause,
         Action<long> onBytesWritten,
         CancellationToken cancellationToken)
@@ -135,55 +138,43 @@ internal static class FilePipeline
         RandomAccess.SetLength(destination, written); // drop any preallocated space beyond the data
         if (options.FlushToDisk)
         {
-            FlushToDisk(destination);
+            platform.FlushToDisk(destination);
         }
 
         return (written, hasher?.GetHashAndReset());
     }
 
-    /// <summary>Reads a whole file and returns its checksum.</summary>
+    /// <summary>Reads a whole file, bypassing the OS cache where the platform allows it, and returns its checksum.</summary>
     public static async Task<byte[]> HashFileAsync(
         string path,
         HashAlgorithmKind algorithm,
         int bufferSize,
+        IFileSystemPlatform platform,
         PauseController pause,
         Action<long> onBytesRead,
         CancellationToken cancellationToken)
     {
         using var hasher = StreamingHasher.Create(algorithm);
-        using var file = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
-        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
-        try
-        {
-            long offset = 0;
-            while (true)
-            {
-                await pause.WaitIfPausedAsync(cancellationToken);
-                var read = await RandomAccess.ReadAsync(file, buffer.AsMemory(0, bufferSize), offset, cancellationToken);
-                if (read == 0)
-                {
-                    break;
-                }
+        using var file = platform.OpenForVerification(path);
+        using var buffer = new AlignedBuffer(bufferSize, Alignment);
+        var memory = buffer.Memory;
 
-                hasher.Append(buffer.AsSpan(0, read));
-                offset += read;
-                onBytesRead(read);
-            }
-        }
-        finally
+        long offset = 0;
+        while (true)
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            await pause.WaitIfPausedAsync(cancellationToken);
+            // Always a full aligned block: only the last read returns less
+            var read = await RandomAccess.ReadAsync(file, memory, offset, cancellationToken);
+            if (read == 0)
+            {
+                break;
+            }
+
+            hasher.Append(memory.Span[..read]);
+            offset += read;
+            onBytesRead(read);
         }
 
         return hasher.GetHashAndReset();
-    }
-
-    private static void FlushToDisk(SafeFileHandle handle)
-    {
-        // FileStream is the only portable way to fsync / FlushFileBuffers a handle.
-        // It takes ownership of the handle, which the caller disposes again: harmless.
-        using var stream = new FileStream(handle, FileAccess.Write, bufferSize: 0, isAsync: true);
-        stream.Flush(flushToDisk: true);
     }
 }

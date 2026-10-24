@@ -13,14 +13,18 @@ public sealed class CopyJob
     private const string TempSuffix = ".gbcopy-tmp";
 
     private readonly PauseController _pause = new();
+    private readonly IFileSystemPlatform _platform;
     private int _started;
 
-    public CopyJob(CopyRequest request)
+    /// <param name="request">What to copy and how.</param>
+    /// <param name="platform">Native file system operations; the portable implementation if null.</param>
+    public CopyJob(CopyRequest request, IFileSystemPlatform? platform = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentOutOfRangeException.ThrowIfZero(request.Sources.Count, nameof(request));
         request.Options.Validate();
         Request = request;
+        _platform = platform ?? ManagedFileSystemPlatform.Instance;
     }
 
     public CopyRequest Request { get; }
@@ -191,6 +195,12 @@ public sealed class CopyJob
         }
 
         tracker.StartFile(item.SourcePath, CopyPhase.Copying);
+        if (Request.Mode == CopyMode.Move && TryMoveWithinVolume(item, target, overwrite))
+        {
+            tracker.AddBytes(workload);
+            return CreateItemResult(item, target, FileCopyStatus.Succeeded, attempts: 1) with { Renamed = true };
+        }
+
         long fileProgress = 0;
         void OnBytes(long bytes)
         {
@@ -225,6 +235,29 @@ public sealed class CopyJob
                 tracker.AddBytes(workload);
                 return CreateItemResult(item, target, FileCopyStatus.Failed, error: ex.Message, attempts: attempt);
             }
+        }
+    }
+
+    /// <summary>
+    /// On the same volume a move is just a rename: instant, and the data is never rewritten,
+    /// so there is nothing to verify. Any error falls back to the normal copy, which has retries
+    /// and reports the error if it persists.
+    /// </summary>
+    private bool TryMoveWithinVolume(CopyItem item, string target, bool overwrite)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            if (overwrite)
+            {
+                ClearReadOnly(target);
+            }
+
+            return _platform.TryMoveWithinVolume(item.SourcePath, target, overwrite);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 
@@ -275,7 +308,7 @@ public sealed class CopyJob
             var metadata = SourceMetadata.Read(source);
 
             var (bytes, hash) = await FilePipeline.CopyAsync(
-                item.SourcePath, temp, metadata.Length, Options, _pause, onBytes, cancellationToken);
+                item.SourcePath, temp, metadata.Length, Options, _platform, _pause, onBytes, cancellationToken);
 
             source.Refresh();
             if (bytes != metadata.Length || source.Length != metadata.Length || source.LastWriteTimeUtc != metadata.LastWriteTimeUtc)
@@ -288,7 +321,7 @@ public sealed class CopyJob
             {
                 tracker.SetPhase(CopyPhase.Verifying);
                 var copyHash = await FilePipeline.HashFileAsync(
-                    temp, Options.EffectiveHashAlgorithm, Options.BufferSize, _pause, onBytes, cancellationToken);
+                    temp, Options.EffectiveHashAlgorithm, Options.BufferSize, _platform, _pause, onBytes, cancellationToken);
                 if (!copyHash.AsSpan().SequenceEqual(hash))
                 {
                     throw new IOException("Verification failed: the copy does not match the source");

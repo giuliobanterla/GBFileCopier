@@ -1,5 +1,6 @@
 using GBFileCopier.Core.Copying;
 using GBFileCopier.Core.Hashing;
+using GBFileCopier.Tests;
 
 namespace GBFileCopier.Core.Tests;
 

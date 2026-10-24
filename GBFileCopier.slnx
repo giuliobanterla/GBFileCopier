@@ -7,5 +7,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GBFileCopier.Core.Tests/GBFileCopier.Core.Tests.csproj" />
+    <Project Path="tests/GBFileCopier.Platform.Tests/GBFileCopier.Platform.Tests.csproj" />
   </Folder>
 </Solution>
