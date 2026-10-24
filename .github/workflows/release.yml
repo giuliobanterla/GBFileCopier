@@ -45,7 +45,8 @@ jobs:
     name: macos-package
     needs: version
     runs-on: macos-26
-    timeout-minutes: 45
+    # Notarization waits for Apple: the first one took about half an hour
+    timeout-minutes: 90
     env:
       # Optional: without these secrets the app is signed ad-hoc and not notarized
       MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}

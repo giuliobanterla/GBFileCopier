@@ -25,9 +25,10 @@ A free and open source file copy utility for **Windows** and **macOS**, inspired
 Download the packages from the [Releases](https://github.com/giuliobanterla/GBFileCopier/releases) page.
 
 - **macOS** (13 or later, Apple Silicon and Intel): open `GBFileCopier-<version>-macos.dmg` and
-  drag GBFileCopier to Applications. Until the app is notarized, macOS blocks the first start: open
-  System Settings → Privacy & Security and choose **Open Anyway** (or right-click the app → Open).
-  The command line tool is in `gbcopy-<version>-macos.tar.gz`.
+  drag GBFileCopier to Applications. From version 0.3.1 the app is signed with a Developer ID and
+  notarized by Apple, so it opens without warnings (up to 0.3.0 macOS blocked the first start: System
+  Settings → Privacy & Security → **Open Anyway**). The command line tool is in
+  `gbcopy-<version>-macos.tar.gz`, signed as well.
 - **Windows** (10 or later, x64): run `GBFileCopier-<version>-windows-x64-setup.exe`; it installs
   for the current user without administrator rights (or for all users, if you choose so), with a
   Start menu entry and `gbcopy.exe` next to the app. SmartScreen may warn about an unknown publisher
@@ -42,8 +43,9 @@ packaging/macos/build.sh [version]                 # on macOS: .dmg (universal) 
 pwsh packaging/windows/build.ps1 [-Version x.y.z]  # on Windows, with Inno Setup 6: installer and .zip
 ```
 
-Pushing a tag such as `v0.1.0` builds both on GitHub Actions and publishes a release. The macOS
-app is signed ad-hoc unless the repository has the secrets `MACOS_CERTIFICATE` (Developer ID
+Pushing a tag such as `v0.1.0` builds both on GitHub Actions and publishes a release. The release
+builds are signed with the project's Developer ID and notarized. Locally, or in a fork, the macOS
+app is signed ad-hoc unless these secrets are available: `MACOS_CERTIFICATE` (Developer ID
 Application certificate, .p12 in base64) and `MACOS_CERTIFICATE_PASSWORD`; with `APPLE_ID`,
 `APPLE_TEAM_ID` and `APPLE_APP_PASSWORD` it is also notarized.
 
