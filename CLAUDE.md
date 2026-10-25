@@ -28,7 +28,8 @@ dotnet publish src/GBFileCopier.Cli -c Release   # Native AOT
 
 - `TreatWarningsAsErrors`, `AnalysisLevel=latest-recommended` and `EnforceCodeStyleInBuild` are on:
   a style or analyzer warning breaks the build. Follow `.editorconfig` (file-scoped namespaces,
-  braces, System usings first); `dotnet format` fixes most of it.
+  braces, System usings first). A PostToolUse hook (`.claude/hooks/dotnet-format.sh`) runs
+  `dotnet format` on each edited `.cs` file (a few seconds per edit, needs `jq`).
 - Everything under `src/` must stay Native AOT compatible (`IsAotCompatible`): no unannotated
   reflection, JSON only through source-generated contexts.
 - Package versions live only in `Directory.Packages.props` (central package management).
