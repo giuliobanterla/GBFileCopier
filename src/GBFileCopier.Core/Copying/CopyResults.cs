@@ -19,6 +19,9 @@ public enum CopyItemKind
     SymbolicLink,
 }
 
+/// <summary>A file (or symbolic link) the job is going to copy, and where.</summary>
+public sealed record PlannedFile(CopyItemKind Kind, string SourcePath, string DestinationPath, long Length);
+
 public sealed record FileCopyResult
 {
     public required string SourcePath { get; init; }

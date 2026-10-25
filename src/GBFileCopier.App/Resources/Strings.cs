@@ -102,12 +102,6 @@ public static class Strings
     /// <summary>Added to the jobs below: you can prepare the next one</summary>
     public static string JobAdded => Get();
 
-    /// <summary>Results</summary>
-    public static string Results => Get();
-
-    /// <summary>Show all files</summary>
-    public static string ShowAllFiles => Get();
-
     /// <summary>File already exists</summary>
     public static string ConflictTitle => Get();
 
@@ -218,6 +212,30 @@ public static class Strings
 
     /// <summary>not processed: {0}</summary>
     public static string SummaryNotProcessed => Get();
+
+    /// <summary>Queued</summary>
+    public static string StatusQueued => Get();
+
+    /// <summary>Copying</summary>
+    public static string StatusCopying => Get();
+
+    /// <summary>Files</summary>
+    public static string JobFiles => Get();
+
+    /// <summary>Queued: {0} ({1})  ·  done: {2}  ·  problems: {3}</summary>
+    public static string JobFilesSummary => Get();
+
+    /// <summary>All</summary>
+    public static string FilterAll => Get();
+
+    /// <summary>Queued</summary>
+    public static string FilterQueued => Get();
+
+    /// <summary>Done</summary>
+    public static string FilterDone => Get();
+
+    /// <summary>Problems</summary>
+    public static string FilterProblems => Get();
 
     /// <summary>Moved</summary>
     public static string StatusMoved => Get();

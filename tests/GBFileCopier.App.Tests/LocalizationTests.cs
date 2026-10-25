@@ -1,6 +1,7 @@
 using Avalonia.Headless.XUnit;
 using GBFileCopier.App.Resources;
 using GBFileCopier.App.ViewModels;
+using GBFileCopier.Core.Copying;
 using GBFileCopier.Platform;
 using GBFileCopier.Platform.Clipboard;
 using GBFileCopier.Tests;
@@ -35,9 +36,12 @@ public sealed class LocalizationTests : IDisposable
         Assert.Equal("Elementi: 2", job.ItemsText);
         Assert.Equal("Completato con errori", job.StatusText);
         Assert.StartsWith("Spostati: 1", job.Summary, StringComparison.Ordinal);
-        var failed = Assert.Single(job.Results);
-        Assert.Equal("Non riuscito", failed.Status);
+        var failed = Assert.Single(job.Files);
         Assert.Equal("L'origine non esiste", failed.Message); // engine message, from Core
+        // The rows are updated from the UI thread's queue, which in the headless tests does not get the
+        // language set by this test (the app sets it for the whole process): check the row text here
+        Assert.Equal("Non riuscito", JobFileItem.Finished(new() { SourcePath = "a", DestinationPath = "b", Status = FileCopyStatus.Failed }, CopyMode.Move).Status);
+        Assert.Equal("In coda", JobFileItem.Queued(new PlannedFile(CopyItemKind.File, "a", "b", 1)).Status);
         Assert.Equal("Chiedi", viewModel.SelectedConflict.Label);
     }
 

@@ -38,6 +38,39 @@ public sealed class CopyJobTests : IDisposable
         Directory.Exists(folder) ? Directory.GetFiles(folder, "*.gbcopy-tmp", SearchOption.AllDirectories) : [];
 
     [Fact]
+    public async Task Observers_GetThePlanThenEachFile()
+    {
+        var a = _temp.CreateFile("src/folder/a.bin", 100);
+        var b = _temp.CreateFile("src/folder/b.bin", 200);
+        IReadOnlyList<PlannedFile>? planned = null;
+        var finished = new List<FileCopyResult>();
+        var job = new CopyJob(new CopyRequest
+        {
+            Sources = [_temp.Combine("src", "folder"), _temp.Combine("src", "missing")],
+            Destination = Destination,
+        })
+        {
+            Planned = files => planned = files,
+            FileFinished = result =>
+            {
+                Assert.NotNull(planned); // the plan comes first
+                lock (finished)
+                {
+                    finished.Add(result);
+                }
+            },
+        };
+
+        var result = await job.RunAsync(cancellationToken: Token);
+
+        Assert.Equal(
+            [(a, Path.Combine(Destination, "folder", "a.bin"), 100L), (b, Path.Combine(Destination, "folder", "b.bin"), 200L)],
+            planned!.Select(f => (f.SourcePath, f.DestinationPath, f.Length)));
+        Assert.Equal(result.Files.Count, finished.Count); // also the missing source, found while scanning
+        Assert.Contains(finished, r => r.Status == FileCopyStatus.Failed && r.SourcePath.EndsWith("missing", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Copy_SingleFile_CopiesContentAndReportsHash()
     {
         var source = _temp.CreateFile("src/file.bin", 50_000);
