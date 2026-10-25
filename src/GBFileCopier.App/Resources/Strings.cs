@@ -402,6 +402,9 @@ public static class Strings
     /// <summary>Check for Updates…</summary>
     public static string MenuCheckForUpdates => Get();
 
+    /// <summary>Force every file to disk also on network shares (safer if the NAS loses power, but much slower with many small files)</summary>
+    public static string SettingsFlushOnNetwork => Get();
+
     /// <summary>Check for updates automatically (once a day, on GitHub)</summary>
     public static string SettingsCheckForUpdates => Get();
 

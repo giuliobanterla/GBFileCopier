@@ -16,20 +16,33 @@ public sealed class CopyJob
 
     private readonly PauseController _pause = new();
     private readonly IFileSystemPlatform _platform;
+    private readonly CopyOptions _pipelineOptions;
     private int _started;
 
     /// <param name="request">What to copy and how.</param>
     /// <param name="platform">Native file system operations; the portable implementation if null.</param>
     public CopyJob(CopyRequest request, IFileSystemPlatform? platform = null)
+        : this(request, platform, destinationOnNetwork: null)
+    {
+    }
+
+    /// <param name="destinationOnNetwork">Overrides the detection of network shares (for tests).</param>
+    internal CopyJob(CopyRequest request, IFileSystemPlatform? platform, bool? destinationOnNetwork)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentOutOfRangeException.ThrowIfZero(request.Sources.Count, nameof(request));
         request.Options.Validate();
         Request = request;
         _platform = platform ?? ManagedFileSystemPlatform.Instance;
+        var onNetwork = destinationOnNetwork ?? DestinationDrive.IsNetwork(request.Destination);
+        FlushesEachFile = request.Options.FlushToDisk && (request.Options.FlushOnNetworkShares || !onNetwork);
+        _pipelineOptions = request.Options with { FlushToDisk = FlushesEachFile };
     }
 
     public CopyRequest Request { get; }
+
+    /// <summary>Each file is forced to disk: asked for, and the destination is not a network share (unless asked for there too).</summary>
+    public bool FlushesEachFile { get; }
 
     private CopyOptions Options => Request.Options;
 
@@ -310,7 +323,7 @@ public sealed class CopyJob
             var metadata = SourceMetadata.Read(source);
 
             var (bytes, hash) = await FilePipeline.CopyAsync(
-                item.SourcePath, temp, metadata.Length, Options, _platform, _pause, onBytes, cancellationToken);
+                item.SourcePath, temp, metadata.Length, _pipelineOptions, _platform, _pause, onBytes, cancellationToken);
 
             source.Refresh();
             if (bytes != metadata.Length || source.Length != metadata.Length || source.LastWriteTimeUtc != metadata.LastWriteTimeUtc)

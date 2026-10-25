@@ -103,6 +103,18 @@ public sealed class SettingsTests : IDisposable
         Assert.Equal((950d, 720d), (store.Saved.WindowWidth, store.Saved.WindowHeight));
     }
 
+    [Fact]
+    public void SettingsViewModel_SavesTheNetworkFlush()
+    {
+        var store = new FakeSettingsStore();
+        var settings = new SettingsViewModel(store);
+        Assert.False(settings.FlushOnNetworkShares); // off by default: fast copies to a NAS
+
+        settings.FlushOnNetworkShares = true;
+
+        Assert.True(store.Load().FlushOnNetworkShares);
+    }
+
     [AvaloniaFact]
     public void SettingsViewModel_SavesTheLanguageAndAsksForARestart()
     {

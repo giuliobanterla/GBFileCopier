@@ -40,6 +40,11 @@ var noFlushOption = new Option<bool>("--no-flush")
     Description = "Don't force each file to disk before going on (faster, less safe)",
 };
 
+var flushNetworkOption = new Option<bool>("--flush-network")
+{
+    Description = "Force each file to disk also on network shares (much slower with many small files)",
+};
+
 var pathsArgument = new Argument<string[]>("paths")
 {
     Description = "One or more sources (files or folders), followed by the destination folder",
@@ -67,7 +72,7 @@ Command CreateTransferCommand(string name, CopyMode mode, string description)
 {
     var command = new Command(name, description)
     {
-        pathsArgument, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption,
+        pathsArgument, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption,
     };
     command.SetAction(async (parseResult, cancellationToken) =>
     {
@@ -96,7 +101,7 @@ Command CreatePasteCommand()
     };
     var command = new Command("paste", "Paste the files copied (or cut) in the Finder or in Explorer")
     {
-        destinationArgument, moveOption, copyOption, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption,
+        destinationArgument, moveOption, copyOption, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption,
     };
     command.Validators.Add(result =>
     {
@@ -167,6 +172,7 @@ async Task<CopyJobResult> RunTransferAsync(
             ConflictPolicy = parseResult.GetValue(conflictOption) ?? (interactive ? ConflictPolicy.Ask : ConflictPolicy.Skip),
             RetryCount = parseResult.GetValue(retriesOption),
             FlushToDisk = !parseResult.GetValue(noFlushOption),
+            FlushOnNetworkShares = parseResult.GetValue(flushNetworkOption),
         },
     };
 
