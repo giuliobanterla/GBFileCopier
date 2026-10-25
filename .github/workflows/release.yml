@@ -63,7 +63,9 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          global-json-file: global.json
+          # An exact SDK, not "the latest 10.0" from global.json: on 2026-10-25 that pointed to a
+          # 10.0.403 whose files were not published yet, and every build failed. Raise it on purpose.
+          dotnet-version: 10.0.402
 
       - name: Import the Developer ID certificate
         if: env.MACOS_CERTIFICATE != ''
@@ -106,7 +108,9 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          global-json-file: global.json
+          # An exact SDK, not "the latest 10.0" from global.json: on 2026-10-25 that pointed to a
+          # 10.0.403 whose files were not published yet, and every build failed. Raise it on purpose.
+          dotnet-version: 10.0.402
 
       # Signing with SignPath (see packaging/windows/signpath): only when the repository is configured for
       # it, and never on pull requests. Tags use the release certificate, manual runs the test one.
