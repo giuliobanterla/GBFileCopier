@@ -39,9 +39,11 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         Jobs.CollectionChanged += (_, _) => OnJobsChanged();
     }
 
-    public string Title { get; } = AppInfo.Name;
-
+    /// <summary>The installed version, without the commit: "0.4.0".</summary>
     public string Version { get; } = AppInfo.Version.Split('+')[0];
+
+    /// <summary>The window title, with the version so that it is always in sight: "GBFileCopier 0.4.0".</summary>
+    public string Title => $"{AppInfo.Name} {Version}";
 
     public ObservableCollection<SourceItem> Sources { get; } = [];
 
