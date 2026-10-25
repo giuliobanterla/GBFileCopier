@@ -23,6 +23,7 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
     private readonly IReadOnlyList<string>? _cutPaths;
     private readonly List<ResultItem> _allResults = [];
     private readonly CancellationTokenSource _cancellation = new();
+    private readonly SpeedMeter _speed = new();
     private CopyJob? _job;
     private ConflictAction? _conflictAnswerForAll;
 
@@ -89,23 +90,21 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(StatusLine))]
     public partial string StatusText { get; private set; } = string.Empty;
 
+    /// <summary>While copying: "File 3 of 120".</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StatusLine))]
-    public partial string DetailText { get; private set; } = string.Empty;
+    public partial string FilesText { get; private set; } = string.Empty;
+
+    /// <summary>While copying: "42%  ·  85.3 MB/s  ·  12:40 left", on a line of its own so that it is never cut.</summary>
+    [ObservableProperty]
+    public partial string TransferText { get; private set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusLine))]
     public partial string? Summary { get; private set; }
 
-    /// <summary>The line under the progress bar: state, then progress details or the summary.</summary>
-    public string StatusLine
-    {
-        get
-        {
-            var more = IsRunning ? DetailText : Summary;
-            return string.IsNullOrEmpty(more) ? StatusText : StatusText + "  ·  " + more;
-        }
-    }
+    /// <summary>The line under the progress bar: the state (the file being copied), then the summary at the end.</summary>
+    public string StatusLine =>
+        IsRunning || string.IsNullOrEmpty(Summary) ? StatusText : StatusText + "  ·  " + Summary;
 
     public ObservableCollection<ResultItem> Results { get; } = [];
 
@@ -231,10 +230,8 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
             _ => string.Format(CultureInfo.CurrentCulture, Strings.CopyingFile, Path.GetFileName(progress.CurrentFile)),
         };
 
-        var speed = progress.BytesPerSecond;
-        var remaining = speed > 0 ? TimeSpan.FromSeconds((progress.TotalBytes - progress.ProcessedBytes) / speed) : (TimeSpan?)null;
-        DetailText = string.Format(CultureInfo.CurrentCulture, Strings.ProgressDetail, progress.CompletedFiles, progress.TotalFiles, ByteSize.Format(speed, CultureInfo.CurrentCulture)) +
-                     (remaining is { } r && progress.ProcessedBytes > 0 ? "  ·  " + string.Format(CultureInfo.CurrentCulture, Strings.TimeLeft, FormatDuration(r)) : string.Empty);
+        FilesText = string.Format(CultureInfo.CurrentCulture, Strings.ProgressFiles, Math.Min(progress.CompletedFiles + 1, progress.TotalFiles), progress.TotalFiles);
+        TransferText = FormatTransfer(progress, _speed.Add(progress.Elapsed, progress.ProcessedBytes));
     }
 
     private async ValueTask<ConflictAction> ResolveConflictAsync(FileConflict conflict, CancellationToken cancellationToken)
@@ -284,7 +281,8 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         StatusText = result.WasCancelled ? Strings.Cancelled
             : result.FailedCount > 0 ? Strings.FinishedWithErrors
             : Strings.Done;
-        DetailText = string.Empty;
+        FilesText = string.Empty;
+        TransferText = string.Empty;
         if (!result.WasCancelled)
         {
             ProgressPercent = 100;
@@ -337,8 +335,23 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private static string FormatDuration(TimeSpan duration) =>
-        duration.TotalHours >= 1 ? duration.ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture)
+    /// <summary>"42%  ·  85.3 MB/s  ·  12:40 left"; the time left once there is a speed to base it on.</summary>
+    internal static string FormatTransfer(CopyProgress progress, double bytesPerSecond)
+    {
+        var percent = ((int)Math.Floor(progress.Fraction * 100)).ToString(CultureInfo.CurrentCulture) + "%";
+        var text = percent + "  ·  " + ByteSize.Format(bytesPerSecond, CultureInfo.CurrentCulture) + "/s";
+        if (bytesPerSecond > 0 && progress.ProcessedBytes > 0 && progress.TotalBytes > progress.ProcessedBytes)
+        {
+            var left = TimeSpan.FromSeconds(Math.Min((progress.TotalBytes - progress.ProcessedBytes) / bytesPerSecond, TimeSpan.FromDays(99).TotalSeconds));
+            text += "  ·  " + string.Format(CultureInfo.CurrentCulture, Strings.TimeLeft, FormatDuration(left));
+        }
+
+        return text;
+    }
+
+    // Hours are not limited to 24: a transfer of 30 hours shows 30:00:00
+    internal static string FormatDuration(TimeSpan duration) =>
+        duration.TotalHours >= 1 ? ((int)duration.TotalHours).ToString(CultureInfo.InvariantCulture) + duration.ToString(@"\:mm\:ss", CultureInfo.InvariantCulture)
         : duration.TotalSeconds >= 1 ? duration.ToString(@"m\:ss", CultureInfo.InvariantCulture)
         : "0:00";
 }
