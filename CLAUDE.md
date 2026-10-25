@@ -59,7 +59,7 @@ match. The CLI output stays in English.
 - Never push to `main` directly. Never create or push a tag, or create/edit a release, without an
   explicit yes: a `v*` tag runs `.github/workflows/release.yml`, which publishes signed public
   packages. `.claude/settings.json` asks for confirmation on these commands.
-- Release: PR bumping `VersionPrefix` in `Directory.Build.props` → merge → annotated tag `vX.Y.Z`
+- Release with `/release <version>` (`.claude/skills/release/SKILL.md`): PR bumping `VersionPrefix` in `Directory.Build.props` → merge → annotated tag `vX.Y.Z`
   on that commit → check the published assets against `SHA256SUMS.txt`, and the macOS notarization
   (`xcrun stapler validate`, `spctl -a -vv -t exec` → "Notarized Developer ID").
 - PRs touching `packaging/**` run the release workflow in build-only mode; its artifacts can be
