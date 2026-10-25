@@ -20,10 +20,18 @@ internal sealed class FakeUiServices : IUiServices
 
     public Task<IReadOnlyList<string>> PickFoldersAsync(string title, bool allowMultiple) => Task.FromResult<IReadOnlyList<string>>([]);
 
-    public Task<ConflictAnswer> AskConflictAsync(FileConflict conflict)
+    /// <summary>Completed by the test to let a conflict dialog close; until then the job is held.</summary>
+    public TaskCompletionSource? ConflictGate { get; set; }
+
+    public async Task<ConflictAnswer> AskConflictAsync(FileConflict conflict)
     {
         ConflictsAsked++;
-        return Task.FromResult(OnConflict(conflict));
+        if (ConflictGate is { } gate)
+        {
+            await gate.Task;
+        }
+
+        return OnConflict(conflict);
     }
 
     public ClipboardFiles? ReadClipboard() => Clipboard;

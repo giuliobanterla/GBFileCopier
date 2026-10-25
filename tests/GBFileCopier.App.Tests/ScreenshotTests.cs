@@ -47,6 +47,37 @@ public sealed class ScreenshotTests : IDisposable
         Save(new MainWindow { DataContext = viewModel }, fileName);
     }
 
+    /// <summary>Three jobs: one finished, one stopped on a conflict, one waiting for the same drive.</summary>
+    [AvaloniaFact]
+    public async Task MainWindow_WithQueuedJobs()
+    {
+        SetTheme("Light");
+        var ui = new FakeUiServices { ConflictGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        var viewModel = new MainViewModel(ui, new FakeSettingsStore());
+        viewModel.AddSources([_temp.CreateFile("Photos/IMG_0001.jpg", 300_000)]);
+        viewModel.Destination = _temp.Combine("Backup");
+        await viewModel.CopyCommand.ExecuteAsync(null);
+
+        _temp.CreateFile("Archive/Report 2026.pdf", text: "old");
+        viewModel.AddSources([_temp.CreateFile("Documents/Report 2026.pdf", 120_000)]);
+        viewModel.Destination = _temp.Combine("Archive");
+        var blocked = viewModel.MoveCommand.ExecuteAsync(null);
+        for (var i = 0; i < 500 && ui.ConflictsAsked == 0; i++)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        viewModel.AddSources([_temp.CreateFile("Videos/Holiday.mp4", 500_000)]);
+        viewModel.Destination = _temp.Combine("Videos backup");
+        var waiting = viewModel.CopyCommand.ExecuteAsync(null);
+        viewModel.SelectedJob = viewModel.Jobs[0];
+
+        Save(new MainWindow { DataContext = viewModel }, "main-queue.png");
+
+        ui.ConflictGate.SetResult();
+        await Task.WhenAll(blocked, waiting);
+    }
+
     [AvaloniaFact]
     public async Task MainWindow_InItalian()
     {

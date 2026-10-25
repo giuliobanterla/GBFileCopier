@@ -54,9 +54,16 @@ Application certificate, .p12 in base64) and `MACOS_CERTIFICATE_PASSWORD`; with 
 
 `GBFileCopier` (Windows and macOS): drop files and folders in the window, or paste them with
 ⌘V / Ctrl+V after copying them in the Finder or Explorer (⌥⌘V, or a cut in Explorer, makes Move
-the default action). Choose the destination, then Copy or Move. While copying you can pause and
-cancel; at the end the results list shows what failed or was skipped, and why. When a file already
-exists you can replace it, skip it or keep both, also for all the following conflicts.
+the default action). Choose the destination, then Copy or Move. When a file already exists you can
+replace it, skip it or keep both, also for all the following conflicts.
+
+Each Copy or Move becomes a job in the **Jobs** list, and the window is ready for the next one, also
+while jobs are running (files sent from the Finder or Explorer are taken in the meantime too). Jobs
+to the same destination drive run one after the other, in the order they were added, because two
+copies to one disk at once are slower than one after the other; jobs to different drives run at the
+same time. Each job can be paused or cancelled, also while it waits for its drive; select a finished
+job to see its results: what failed or was skipped, and why. Closing the window cancels the jobs
+still waiting or running.
 
 Files and folders passed on the command line are added to the list.
 

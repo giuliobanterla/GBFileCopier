@@ -78,6 +78,30 @@ public static class Strings
     /// <summary>Copy</summary>
     public static string Copy => Get();
 
+    /// <summary>Jobs</summary>
+    public static string Jobs => Get();
+
+    /// <summary>Clear finished</summary>
+    public static string ClearFinished => Get();
+
+    /// <summary>Copy to {0}</summary>
+    public static string JobCopyTo => Get();
+
+    /// <summary>Move to {0}</summary>
+    public static string JobMoveTo => Get();
+
+    /// <summary>Items: {0}</summary>
+    public static string JobItems => Get();
+
+    /// <summary>Waiting: another job is using {0}</summary>
+    public static string WaitingForDrive => Get();
+
+    /// <summary>the startup disk</summary>
+    public static string StartupDisk => Get();
+
+    /// <summary>Added to the jobs below: you can prepare the next one</summary>
+    public static string JobAdded => Get();
+
     /// <summary>Results</summary>
     public static string Results => Get();
 

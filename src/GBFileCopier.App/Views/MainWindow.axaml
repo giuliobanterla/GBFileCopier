@@ -4,23 +4,23 @@
         xmlns:res="using:GBFileCopier.App.Resources"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="820" d:DesignHeight="640"
+        mc:Ignorable="d" d:DesignWidth="820" d:DesignHeight="760"
         x:Class="GBFileCopier.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/icon.ico"
         Title="{Binding Title}"
-        Width="820" Height="640" MinWidth="600" MinHeight="480">
+        Width="820" Height="760" MinWidth="600" MinHeight="560">
 
   <DockPanel>
   <!-- The menu bar inside the window on Windows and Linux; on macOS the menu is in the system menu bar -->
   <NativeMenuBar DockPanel.Dock="Top" />
 
-  <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" Margin="16" RowSpacing="12">
+  <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto" Margin="16" RowSpacing="12">
 
     <!-- Sources toolbar -->
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
       <TextBlock Classes="section" Text="{x:Static res:Strings.FilesAndFolders}" />
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" IsEnabled="{Binding IsIdle}">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
         <Button Content="{x:Static res:Strings.AddFiles}" Command="{Binding AddFilesCommand}" />
         <Button Content="{x:Static res:Strings.AddFolder}" Command="{Binding AddFolderCommand}" />
         <Button Content="{x:Static res:Strings.Paste}" Command="{Binding PasteCommand}" CommandParameter="{x:False}"
@@ -61,8 +61,7 @@
     </Border>
 
     <!-- Destination and options -->
-    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="10"
-          IsEnabled="{Binding IsIdle}">
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="10">
       <TextBlock Classes="section" Text="{x:Static res:Strings.Destination}" />
       <TextBox Grid.Column="1" x:Name="DestinationBox" DragDrop.AllowDrop="True" Text="{Binding Destination}"
                PlaceholderText="{x:Static res:Strings.DestinationPlaceholder}" />
@@ -94,31 +93,54 @@
       </WrapPanel>
     </Grid>
 
-    <!-- Progress and actions -->
-    <Border Grid.Row="3" Background="{DynamicResource PanelBrush}" CornerRadius="6" Padding="12">
-      <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="6" ColumnSpacing="12">
-        <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-        <StackPanel Grid.Column="1" Grid.RowSpan="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Button Content="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}" IsVisible="{Binding IsRunning}" />
-          <Button Content="{x:Static res:Strings.Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding IsRunning}" />
-          <Button Classes="primary" Content="{x:Static res:Strings.Move}" Command="{Binding MoveCommand}" IsVisible="{Binding IsIdle}"
-                  IsDefault="{Binding PreferMove}" Classes.accent="{Binding PreferMove}" />
-          <Button Classes="primary" Content="{x:Static res:Strings.Copy}" Command="{Binding CopyCommand}" IsVisible="{Binding IsIdle}"
-                  IsDefault="{Binding !PreferMove}" Classes.accent="{Binding !PreferMove}" />
-        </StackPanel>
-        <ProgressBar Grid.Row="1" Value="{Binding ProgressPercent}" Maximum="100" IsVisible="{Binding HasRun}" />
-        <TextBlock Grid.Row="2" Classes="subtle" Text="{Binding DetailText}" IsVisible="{Binding IsRunning}" />
-        <TextBlock Grid.Row="2" Classes="subtle" Text="{Binding Summary}" IsVisible="{Binding !IsRunning}" />
-      </Grid>
-    </Border>
+    <!-- Actions: each Copy or Move becomes a job; the list is then ready for the next one -->
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <TextBlock Classes="subtle" Text="{Binding StatusText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <Button Classes="primary" Content="{x:Static res:Strings.Move}" Command="{Binding MoveCommand}"
+                IsDefault="{Binding PreferMove}" Classes.accent="{Binding PreferMove}" />
+        <Button Classes="primary" Content="{x:Static res:Strings.Copy}" Command="{Binding CopyCommand}"
+                IsDefault="{Binding !PreferMove}" Classes.accent="{Binding !PreferMove}" />
+      </StackPanel>
+    </Grid>
 
-    <!-- Results -->
-    <Grid Grid.Row="4" RowDefinitions="Auto,Auto" RowSpacing="6" IsVisible="{Binding HasRun}">
+    <!-- Jobs: one at a time per destination drive, different drives at the same time -->
+    <Grid Grid.Row="4" RowDefinitions="Auto,Auto" RowSpacing="6" IsVisible="{Binding HasJobs}">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Classes="section" Text="{x:Static res:Strings.Results}" />
-        <CheckBox Grid.Column="1" Content="{x:Static res:Strings.ShowAllFiles}" IsChecked="{Binding ShowAllResults}" />
+        <TextBlock Classes="section" Text="{x:Static res:Strings.Jobs}" />
+        <Button Grid.Column="1" Content="{x:Static res:Strings.ClearFinished}" Command="{Binding ClearFinishedCommand}" />
       </Grid>
-      <ListBox Grid.Row="1" ItemsSource="{Binding Results}" Height="150">
+      <ListBox Grid.Row="1" ItemsSource="{Binding Jobs}" SelectedItem="{Binding SelectedJob}" MaxHeight="215"
+               Background="{DynamicResource PanelBrush}" CornerRadius="6">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:JobViewModel">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="4">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="PathSegmentEllipsis"
+                           ToolTip.Tip="{Binding Title}" />
+                <TextBlock Grid.Column="1" Classes="subtle" Text="{Binding ItemsText}" VerticalAlignment="Center" />
+              </Grid>
+              <ProgressBar Grid.Row="1" Value="{Binding ProgressPercent}" Maximum="100" IsVisible="{Binding !IsWaiting}" />
+              <TextBlock Grid.Row="2" Classes="subtle" Text="{Binding StatusLine}" TextTrimming="CharacterEllipsis" />
+              <StackPanel Grid.Column="1" Grid.RowSpan="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Content="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}" IsVisible="{Binding IsRunning}" />
+                <Button Content="{x:Static res:Strings.Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding IsActive}" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+
+    <!-- Results of the selected job -->
+    <Grid Grid.Row="5" RowDefinitions="Auto,Auto" RowSpacing="6" IsVisible="{Binding SelectedJob.IsFinished, FallbackValue=False}">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+        <TextBlock Classes="section" Text="{x:Static res:Strings.Results}" />
+        <TextBlock Grid.Column="1" Classes="subtle" Text="{Binding SelectedJob.Title, FallbackValue=''}"
+                   TextTrimming="PathSegmentEllipsis" VerticalAlignment="Center" />
+        <CheckBox Grid.Column="2" Content="{x:Static res:Strings.ShowAllFiles}" IsChecked="{Binding SelectedJob.ShowAllResults, FallbackValue=False}" />
+      </Grid>
+      <ListBox Grid.Row="1" ItemsSource="{Binding SelectedJob.Results, FallbackValue={x:Null}}" Height="130">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:ResultItem">
             <Grid ColumnDefinitions="110,Auto,*" ColumnSpacing="10" ToolTip.Tip="{Binding SourcePath}">
