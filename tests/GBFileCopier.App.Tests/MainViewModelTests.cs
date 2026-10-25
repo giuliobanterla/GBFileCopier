@@ -67,6 +67,16 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void Title_ShowsTheVersion()
+    {
+        var viewModel = CreateViewModel();
+
+        Assert.Equal($"GBFileCopier {viewModel.Version}", viewModel.Title);
+        Assert.DoesNotContain("+", viewModel.Version, StringComparison.Ordinal); // no commit hash
+        Assert.Matches(@"^\d+\.\d+\.\d+", viewModel.Version);
+    }
+
+    [AvaloniaFact]
     public void Copy_NeedsSourcesAndDestination()
     {
         var viewModel = CreateViewModel();
