@@ -83,7 +83,7 @@ public partial class MainWindow : Window
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-        if (e.Handled || ViewModel is not { IsIdle: true } viewModel)
+        if (e.Handled || ViewModel is not { } viewModel)
         {
             return;
         }
@@ -110,7 +110,7 @@ public partial class MainWindow : Window
 
     private void OnDropSources(object? sender, DragEventArgs e)
     {
-        if (ViewModel is { IsIdle: true } viewModel && e.DataTransfer.TryGetFiles() is { } items)
+        if (ViewModel is { } viewModel && e.DataTransfer.TryGetFiles() is { } items)
         {
             viewModel.AddSources(WindowUiServices.LocalPaths(items));
         }
@@ -121,14 +121,14 @@ public partial class MainWindow : Window
         var folder = e.DataTransfer.TryGetFiles() is { } items
             ? WindowUiServices.LocalPaths(items).FirstOrDefault(Directory.Exists)
             : null;
-        if (ViewModel is { IsIdle: true } viewModel && folder is not null)
+        if (ViewModel is { } viewModel && folder is not null)
         {
             viewModel.Destination = folder;
             e.Handled = true;
         }
     }
 
-    /// <summary>Closing during a copy cancels it first, so that no temporary files are left behind.</summary>
+    /// <summary>Closing with jobs waiting or running cancels them first, so that no temporary files are left behind.</summary>
     protected override async void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
@@ -137,17 +137,16 @@ public partial class MainWindow : Window
             ViewModel?.SaveSettings(Width, Height);
         }
 
-        if (_closingAfterCancel || ViewModel is not { IsRunning: true, RunningTask: { } running } viewModel)
+        if (_closingAfterCancel || ViewModel is not { HasActiveJobs: true } viewModel)
         {
             return;
         }
 
         e.Cancel = true;
         _closingAfterCancel = true;
-        viewModel.CancelCommand.Execute(null);
         try
         {
-            await running;
+            await viewModel.CancelAllAsync();
         }
         finally
         {

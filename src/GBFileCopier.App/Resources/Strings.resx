@@ -67,6 +67,30 @@
   <data name="Copy" xml:space="preserve">
     <value>Copy</value>
   </data>
+  <data name="Jobs" xml:space="preserve">
+    <value>Jobs</value>
+  </data>
+  <data name="ClearFinished" xml:space="preserve">
+    <value>Clear finished</value>
+  </data>
+  <data name="JobCopyTo" xml:space="preserve">
+    <value>Copy to {0}</value>
+  </data>
+  <data name="JobMoveTo" xml:space="preserve">
+    <value>Move to {0}</value>
+  </data>
+  <data name="JobItems" xml:space="preserve">
+    <value>Items: {0}</value>
+  </data>
+  <data name="WaitingForDrive" xml:space="preserve">
+    <value>Waiting: another job is using {0}</value>
+  </data>
+  <data name="StartupDisk" xml:space="preserve">
+    <value>the startup disk</value>
+  </data>
+  <data name="JobAdded" xml:space="preserve">
+    <value>Added to the jobs below: you can prepare the next one</value>
+  </data>
   <data name="Results" xml:space="preserve">
     <value>Results</value>
   </data>

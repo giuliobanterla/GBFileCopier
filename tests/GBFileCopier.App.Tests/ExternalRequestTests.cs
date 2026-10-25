@@ -59,7 +59,7 @@ public sealed class ExternalRequestTests : IDisposable
         Assert.Single(viewModel.Sources);
         Assert.Equal(_temp.Combine("dst"), viewModel.Destination);
         Assert.True(viewModel.PreferMove);
-        Assert.False(viewModel.HasRun); // nothing copied: the user still has to press Move
+        Assert.Empty(viewModel.Jobs); // nothing copied: the user still has to press Move
         Assert.False(Directory.Exists(_temp.Combine("dst")));
     }
 

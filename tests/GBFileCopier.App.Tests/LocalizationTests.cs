@@ -30,9 +30,12 @@ public sealed class LocalizationTests : IDisposable
         viewModel.Destination = _temp.Combine("dst");
         await viewModel.MoveCommand.ExecuteAsync(null);
 
-        Assert.Equal("Completato con errori", viewModel.StatusText);
-        Assert.StartsWith("Spostati: 1", viewModel.Summary, StringComparison.Ordinal);
-        var failed = Assert.Single(viewModel.Results);
+        var job = Assert.Single(viewModel.Jobs);
+        Assert.StartsWith("Sposta in ", job.Title, StringComparison.Ordinal);
+        Assert.Equal("Elementi: 2", job.ItemsText);
+        Assert.Equal("Completato con errori", job.StatusText);
+        Assert.StartsWith("Spostati: 1", job.Summary, StringComparison.Ordinal);
+        var failed = Assert.Single(job.Results);
         Assert.Equal("Non riuscito", failed.Status);
         Assert.Equal("L'origine non esiste", failed.Message); // engine message, from Core
         Assert.Equal("Chiedi", viewModel.SelectedConflict.Label);
