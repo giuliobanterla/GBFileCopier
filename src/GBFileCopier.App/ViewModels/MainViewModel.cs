@@ -85,6 +85,9 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial JobViewModel? SelectedJob { get; set; }
 
+    /// <summary>The update bar; set by the app (null in most tests).</summary>
+    public UpdateViewModel? Updates { get; set; }
+
     /// <summary>Some job is waiting or running: closing the window cancels it.</summary>
     public bool HasActiveJobs => Jobs.Any(j => j.IsActive);
 
@@ -298,6 +301,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasJobs));
         OnPropertyChanged(nameof(HasActiveJobs));
         ClearFinishedCommand.NotifyCanExecuteChanged();
+        Updates?.NotifyJobsChanged();
     }
 
     /// <summary>One conflict dialog at a time, also when jobs to different drives run together.</summary>

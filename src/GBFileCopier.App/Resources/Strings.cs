@@ -333,6 +333,78 @@ public static class Strings
     /// <summary>Dark</summary>
     public static string ThemeDark => Get();
 
+    /// <summary>Check for new versions of GBFileCopier automatically? The app asks GitHub once a day and sends nothing else.</summary>
+    public static string UpdateAskAutomatic => Get();
+
+    /// <summary>Yes, check</summary>
+    public static string UpdateYes => Get();
+
+    /// <summary>No, thanks</summary>
+    public static string UpdateNo => Get();
+
+    /// <summary>Checking for updates…</summary>
+    public static string UpdateChecking => Get();
+
+    /// <summary>GBFileCopier {0} is the latest version</summary>
+    public static string UpdateUpToDate => Get();
+
+    /// <summary>GBFileCopier {0} is available (you have {1})</summary>
+    public static string UpdateAvailable => Get();
+
+    /// <summary>Install and restart</summary>
+    public static string UpdateInstall => Get();
+
+    /// <summary>Download…</summary>
+    public static string UpdateDownloadPage => Get();
+
+    /// <summary>What's new</summary>
+    public static string UpdateWhatsNew => Get();
+
+    /// <summary>Later</summary>
+    public static string UpdateLater => Get();
+
+    /// <summary>Downloading GBFileCopier {0}…</summary>
+    public static string UpdateDownloading => Get();
+
+    /// <summary>Finish or cancel the jobs, then install</summary>
+    public static string UpdateWaitForJobs => Get();
+
+    /// <summary>Installing GBFileCopier {0}: the app restarts by itself</summary>
+    public static string UpdateInstalling => Get();
+
+    /// <summary>The update did not work: {0}</summary>
+    public static string UpdateFailed => Get();
+
+    /// <summary>Cannot check for updates: {0}</summary>
+    public static string UpdateCheckFailed => Get();
+
+    /// <summary>the release has no checksum for this file</summary>
+    public static string UpdateNoChecksums => Get();
+
+    /// <summary>the downloaded file is damaged (different checksum)</summary>
+    public static string UpdateChecksumMismatch => Get();
+
+    /// <summary>the downloaded app is not signed by the GBFileCopier developer</summary>
+    public static string UpdateNotSigned => Get();
+
+    /// <summary>the downloaded app is not the expected version</summary>
+    public static string UpdateWrongVersion => Get();
+
+    /// <summary>the release has no package for this system</summary>
+    public static string UpdateNoPackage => Get();
+
+    /// <summary>the installation did not complete (code {0})</summary>
+    public static string UpdateNotCompleted => Get();
+
+    /// <summary>the installation could not start</summary>
+    public static string UpdateFailedGeneric => Get();
+
+    /// <summary>Check for Updates…</summary>
+    public static string MenuCheckForUpdates => Get();
+
+    /// <summary>Check for updates automatically (once a day, on GitHub)</summary>
+    public static string SettingsCheckForUpdates => Get();
+
     private static string Get([CallerMemberName] string name = "") =>
         Resources.GetString(name, CultureInfo.CurrentUICulture) ?? name;
 }

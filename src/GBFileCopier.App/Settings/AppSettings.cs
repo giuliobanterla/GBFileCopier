@@ -31,6 +31,12 @@ public sealed record AppSettings
     public double WindowWidth { get; init; }
 
     public double WindowHeight { get; init; }
+
+    /// <summary>
+    /// Look for new versions once a day. Null until the user has answered: the app asks first,
+    /// because checking contacts GitHub (see CODE_SIGNING_POLICY.md, Privacy).
+    /// </summary>
+    public bool? CheckForUpdates { get; init; }
 }
 
 /// <summary>Source-generated serialization: no reflection, works with Native AOT.</summary>

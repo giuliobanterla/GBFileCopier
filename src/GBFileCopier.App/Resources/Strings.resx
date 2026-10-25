@@ -322,4 +322,76 @@
   <data name="ThemeDark" xml:space="preserve">
     <value>Dark</value>
   </data>
+  <data name="UpdateAskAutomatic" xml:space="preserve">
+    <value>Check for new versions of GBFileCopier automatically? The app asks GitHub once a day and sends nothing else.</value>
+  </data>
+  <data name="UpdateYes" xml:space="preserve">
+    <value>Yes, check</value>
+  </data>
+  <data name="UpdateNo" xml:space="preserve">
+    <value>No, thanks</value>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>Checking for updates…</value>
+  </data>
+  <data name="UpdateUpToDate" xml:space="preserve">
+    <value>GBFileCopier {0} is the latest version</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>GBFileCopier {0} is available (you have {1})</value>
+  </data>
+  <data name="UpdateInstall" xml:space="preserve">
+    <value>Install and restart</value>
+  </data>
+  <data name="UpdateDownloadPage" xml:space="preserve">
+    <value>Download…</value>
+  </data>
+  <data name="UpdateWhatsNew" xml:space="preserve">
+    <value>What's new</value>
+  </data>
+  <data name="UpdateLater" xml:space="preserve">
+    <value>Later</value>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>Downloading GBFileCopier {0}…</value>
+  </data>
+  <data name="UpdateWaitForJobs" xml:space="preserve">
+    <value>Finish or cancel the jobs, then install</value>
+  </data>
+  <data name="UpdateInstalling" xml:space="preserve">
+    <value>Installing GBFileCopier {0}: the app restarts by itself</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>The update did not work: {0}</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Cannot check for updates: {0}</value>
+  </data>
+  <data name="UpdateNoChecksums" xml:space="preserve">
+    <value>the release has no checksum for this file</value>
+  </data>
+  <data name="UpdateChecksumMismatch" xml:space="preserve">
+    <value>the downloaded file is damaged (different checksum)</value>
+  </data>
+  <data name="UpdateNotSigned" xml:space="preserve">
+    <value>the downloaded app is not signed by the GBFileCopier developer</value>
+  </data>
+  <data name="UpdateWrongVersion" xml:space="preserve">
+    <value>the downloaded app is not the expected version</value>
+  </data>
+  <data name="UpdateNoPackage" xml:space="preserve">
+    <value>the release has no package for this system</value>
+  </data>
+  <data name="UpdateNotCompleted" xml:space="preserve">
+    <value>the installation did not complete (code {0})</value>
+  </data>
+  <data name="UpdateFailedGeneric" xml:space="preserve">
+    <value>the installation could not start</value>
+  </data>
+  <data name="MenuCheckForUpdates" xml:space="preserve">
+    <value>Check for Updates…</value>
+  </data>
+  <data name="SettingsCheckForUpdates" xml:space="preserve">
+    <value>Check for updates automatically (once a day, on GitHub)</value>
+  </data>
 </root>

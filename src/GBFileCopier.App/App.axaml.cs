@@ -7,6 +7,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using GBFileCopier.App.Resources;
 using GBFileCopier.App.Services;
+using GBFileCopier.App.Services.Updates;
 using GBFileCopier.App.Settings;
 using GBFileCopier.App.ViewModels;
 using GBFileCopier.App.Views;
@@ -106,8 +107,15 @@ public partial class App : Application
                 window.Height = settings.WindowHeight;
             }
 
+            var updates = new UpdateViewModel(new UpdateService(), SettingsStore, () => !viewModel.HasActiveJobs,
+                () => desktop.Shutdown(), uri => _ = window.Launcher.LaunchUriAsync(uri));
+            viewModel.Updates = updates;
             window.DataContext = viewModel;
             desktop.MainWindow = window;
+
+            // Updates: the first check a few seconds after the start, then the timer checks once a day
+            DispatcherTimer.RunOnce(() => _ = updates.StartAsync(), TimeSpan.FromSeconds(5));
+            new DispatcherTimer(TimeSpan.FromHours(1), DispatcherPriority.Background, (_, _) => _ = updates.TickAsync()).Start();
 
             SingleInstance?.Listen((arguments, directory) =>
                 Dispatcher.UIThread.Post(() => OnForwarded(arguments, directory, window, viewModel)));
@@ -124,6 +132,7 @@ public partial class App : Application
                 NativeMenu.SetMenu(this,
                 [
                     MainWindow.Item(Strings.MenuAbout, window.ShowAbout),
+                    MainWindow.Item(Strings.MenuCheckForUpdates, window.CheckForUpdates),
                     new NativeMenuItemSeparator(),
                     MainWindow.Item(Strings.MenuSettings, window.ShowSettings, new KeyGesture(Key.OemComma, KeyModifiers.Meta)),
                 ]);

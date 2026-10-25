@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using GBFileCopier.App.Services.Updates;
 using GBFileCopier.App.ViewModels;
 using GBFileCopier.App.Views;
 using GBFileCopier.Core.Copying;
@@ -76,6 +77,50 @@ public sealed class ScreenshotTests : IDisposable
 
         ui.ConflictGate.SetResult();
         await Task.WhenAll(blocked, waiting);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("Light", "en")]
+    [InlineData("Dark", "it")]
+    public void MainWindow_WithUpdateBar(string theme, string language)
+    {
+        using var culture = EnglishCulture.Use(language);
+        SetTheme(theme);
+        var viewModel = new MainViewModel(new FakeUiServices(), new FakeSettingsStore())
+        {
+            Updates = new UpdateViewModel(new BarUpdateService(), new FakeSettingsStore(), () => true, () => { }, _ => { }),
+        };
+        viewModel.Updates.CheckNowAsync().GetAwaiter().GetResult();
+
+        Save(new MainWindow { DataContext = viewModel }, $"main-update-{language}-{theme.ToLowerInvariant()}.png");
+    }
+
+    [AvaloniaFact]
+    public async Task MainWindow_AskingAboutUpdates()
+    {
+        SetTheme("Light");
+        var viewModel = new MainViewModel(new FakeUiServices(), new FakeSettingsStore())
+        {
+            Updates = new UpdateViewModel(new BarUpdateService(), new FakeSettingsStore(), () => true, () => { }, _ => { }),
+        };
+        await viewModel.Updates.StartAsync();
+
+        Save(new MainWindow { DataContext = viewModel }, "main-update-ask.png");
+    }
+
+    private sealed class BarUpdateService : IUpdateService
+    {
+        public UpdateVersion CurrentVersion => UpdateVersion.Parse("0.3.1")!;
+
+        public bool CanInstall => true;
+
+        public Task<ReleaseInfo?> GetLatestAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<ReleaseInfo?>(new ReleaseInfo(UpdateVersion.Parse("0.4.0")!, new Uri("https://github.com/x"), []));
+
+        public Task<PreparedUpdate> DownloadAsync(ReleaseInfo release, IProgress<double> progress, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<bool> InstallAsync(PreparedUpdate update) => throw new NotSupportedException();
     }
 
     [AvaloniaFact]

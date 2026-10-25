@@ -15,6 +15,34 @@
   <!-- The menu bar inside the window on Windows and Linux; on macOS the menu is in the system menu bar -->
   <NativeMenuBar DockPanel.Dock="Top" />
 
+  <!-- Update bar: asks about automatic checks, announces a new version, shows the download -->
+  <Border DockPanel.Dock="Top" Background="{DynamicResource PanelBrush}" Padding="16,10"
+          IsVisible="{Binding Updates.IsVisible, FallbackValue=False}">
+    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+      <TextBlock Text="{Binding Updates.Message, FallbackValue=''}" TextWrapping="Wrap" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <Button Classes="accent" Content="{x:Static res:Strings.UpdateYes}" Command="{Binding Updates.EnableAutomaticCommand, FallbackValue={x:Null}}"
+                IsVisible="{Binding Updates.IsAsking, FallbackValue=False}" />
+        <Button Content="{x:Static res:Strings.UpdateNo}" Command="{Binding Updates.DisableAutomaticCommand, FallbackValue={x:Null}}"
+                IsVisible="{Binding Updates.IsAsking, FallbackValue=False}" />
+        <Button Content="{x:Static res:Strings.UpdateWhatsNew}" Command="{Binding Updates.WhatsNewCommand, FallbackValue={x:Null}}"
+                IsVisible="{Binding Updates.IsAvailable, FallbackValue=False}" />
+        <Button Classes="accent" Content="{Binding Updates.InstallLabel, FallbackValue=''}" Command="{Binding Updates.InstallCommand, FallbackValue={x:Null}}"
+                IsVisible="{Binding Updates.IsAvailable, FallbackValue=False}" />
+        <Button Content="{x:Static res:Strings.UpdateLater}" Command="{Binding Updates.DismissCommand, FallbackValue={x:Null}}"
+                IsVisible="{Binding Updates.IsAvailable, FallbackValue=False}" />
+        <Button Content="{x:Static res:Strings.Cancel}" Command="{Binding Updates.CancelDownloadCommand, FallbackValue={x:Null}}"
+                IsVisible="{Binding Updates.IsDownloading, FallbackValue=False}" />
+        <Button Content="{x:Static res:Strings.Close}" Command="{Binding Updates.DismissCommand, FallbackValue={x:Null}}"
+                IsVisible="{Binding Updates.CanClose, FallbackValue=False}" />
+      </StackPanel>
+      <ProgressBar Grid.Row="1" Grid.ColumnSpan="2" Value="{Binding Updates.ProgressPercent, FallbackValue=0}" Maximum="100"
+                   IsVisible="{Binding Updates.IsDownloading, FallbackValue=False}" />
+      <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="subtle" Text="{x:Static res:Strings.UpdateWaitForJobs}"
+                 IsVisible="{Binding Updates.WaitsForJobs, FallbackValue=False}" />
+    </Grid>
+  </Border>
+
   <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto" Margin="16" RowSpacing="12">
 
     <!-- Sources toolbar -->
