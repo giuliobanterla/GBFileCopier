@@ -186,8 +186,8 @@ public static class Strings
     /// <summary>Finishing…</summary>
     public static string Finishing => Get();
 
-    /// <summary>File {0} of {1}  ·  {2}/s</summary>
-    public static string ProgressDetail => Get();
+    /// <summary>File {0} of {1}</summary>
+    public static string ProgressFiles => Get();
 
     /// <summary>{0} left</summary>
     public static string TimeLeft => Get();

@@ -123,6 +123,38 @@ public sealed class ScreenshotTests : IDisposable
         public Task<bool> InstallAsync(PreparedUpdate update) => throw new NotSupportedException();
     }
 
+    /// <summary>A copy between two NAS with long names, stopped on a conflict after the first file: files, speed and time left stay visible.</summary>
+    [AvaloniaFact]
+    public Task MainWindow_TransferInProgress() => RenderTransferAsync("en");
+
+    private async Task RenderTransferAsync(string language)
+    {
+        SetTheme("Light");
+        var ui = new FakeUiServices { ConflictGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        var viewModel = new MainViewModel(ui, new FakeSettingsStore());
+        var folder = "Holiday videos 2026 - Monte Baldo and Lake Garda";
+        _temp.CreateFile($"NAS2/{folder}/b - Second part of the walk to Ferrara di Monte Baldo.mp4", text: "old");
+        viewModel.AddSources(
+        [
+            _temp.CreateFile($"NAS1/{folder}/a - The very long first video of the holiday, recorded in 4K.mp4", 30_000_000),
+            _temp.CreateFile($"NAS1/{folder}/b - Second part of the walk to Ferrara di Monte Baldo.mp4", 1_000),
+        ]);
+        viewModel.Destination = _temp.Combine("NAS2", folder);
+        var copy = viewModel.CopyCommand.ExecuteAsync(null);
+        for (var i = 0; i < 1000 && ui.ConflictsAsked == 0; i++)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+        var job = Assert.Single(viewModel.Jobs);
+        Assert.Matches(@"^\d+%  ·  .+/s", job.TransferText);
+        Save(new MainWindow { DataContext = viewModel }, $"main-transfer-{language}.png");
+
+        ui.ConflictGate.SetResult();
+        await copy;
+    }
+
     [AvaloniaFact]
     public async Task MainWindow_InItalian()
     {

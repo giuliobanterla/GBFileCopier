@@ -175,8 +175,8 @@
   <data name="Finishing" xml:space="preserve">
     <value>Completamento…</value>
   </data>
-  <data name="ProgressDetail" xml:space="preserve">
-    <value>File {0} di {1}  ·  {2}/s</value>
+  <data name="ProgressFiles" xml:space="preserve">
+    <value>File {0} di {1}</value>
   </data>
   <data name="TimeLeft" xml:space="preserve">
     <value>ancora {0}</value>

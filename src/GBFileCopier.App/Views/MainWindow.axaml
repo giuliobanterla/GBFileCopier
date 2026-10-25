@@ -142,15 +142,20 @@
                Background="{DynamicResource PanelBrush}" CornerRadius="6">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:JobViewModel">
-            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="4">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="4">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="PathSegmentEllipsis"
                            ToolTip.Tip="{Binding Title}" />
                 <TextBlock Grid.Column="1" Classes="subtle" Text="{Binding ItemsText}" VerticalAlignment="Center" />
               </Grid>
               <ProgressBar Grid.Row="1" Value="{Binding ProgressPercent}" Maximum="100" IsVisible="{Binding !IsWaiting}" />
-              <TextBlock Grid.Row="2" Classes="subtle" Text="{Binding StatusLine}" TextTrimming="CharacterEllipsis" />
-              <StackPanel Grid.Column="1" Grid.RowSpan="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <!-- The file name can be long and is shortened; files, speed and time left never are -->
+              <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <TextBlock Classes="subtle" Text="{Binding StatusLine}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusLine}" />
+                <TextBlock Grid.Column="1" Classes="subtle" Text="{Binding FilesText}" IsVisible="{Binding IsRunning}" />
+              </Grid>
+              <TextBlock Grid.Row="3" Text="{Binding TransferText}" FontWeight="SemiBold" IsVisible="{Binding IsRunning}" />
+              <StackPanel Grid.Column="1" Grid.RowSpan="4" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <Button Content="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}" IsVisible="{Binding IsRunning}" />
                 <Button Content="{x:Static res:Strings.Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding IsActive}" />
               </StackPanel>

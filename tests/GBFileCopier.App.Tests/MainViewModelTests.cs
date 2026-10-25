@@ -66,6 +66,25 @@ public sealed class MainViewModelTests : IDisposable
         Assert.Single(viewModel.Sources);
     }
 
+    [Theory]
+    [InlineData(50_000_000, 100_000_000, 1_000_000, "50%  ·  976.6 KB/s  ·  0:50 left")]
+    [InlineData(0, 100_000_000, 0, "0%  ·  0 B/s")] // no time left before there is a speed
+    [InlineData(1, 108_000_000_001, 1_000_000, "0%  ·  976.6 KB/s  ·  30:00:00 left")] // more than a day: hours go on
+    public void Transfer_ShowsPercentSpeedAndTimeLeft(long done, long total, double speed, string expected)
+    {
+        var progress = new CopyProgress(CopyPhase.Copying, "a.bin", done, total, 0, 1, TimeSpan.FromSeconds(10));
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture; // "976.6", whatever the machine's region
+        try
+        {
+            Assert.Equal(expected, JobViewModel.FormatTransfer(progress, speed));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+        }
+    }
+
     [AvaloniaFact]
     public void Title_ShowsTheVersion()
     {
