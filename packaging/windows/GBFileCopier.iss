@@ -80,3 +80,12 @@ Name: "{usersendto}\{#AppName}"; Filename: "{app}\GBFileCopier.exe"; Parameters:
 
 [Run]
 Filename: "{app}\GBFileCopier.exe"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+; The app's own updater runs setup silently with /RELAUNCH=1: start the new version afterwards, as the
+; user who was running it (not as the administrator, for an install for all users)
+Filename: "{app}\GBFileCopier.exe"; Flags: nowait runasoriginaluser; Check: RelaunchRequested
+
+[Code]
+function RelaunchRequested: Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:relaunch|0}') = '1');
+end;

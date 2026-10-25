@@ -33,5 +33,10 @@ This program will not transfer any information to other networked systems unless
 requested by the user or the person installing or operating it.
 
 GBFileCopier copies the files the user selects to the destination the user chooses, which can be a
-network share. It has no telemetry, does not check for updates, and opens the project page on GitHub
-only when the user clicks the link in the About window.
+network share. It has no telemetry. It looks for new versions only if the user agrees when the app
+asks the first time (the choice can be changed in Settings), or chooses *Check for Updates…*: it then
+reads the latest release from the GitHub API (`api.github.com`), once a day at most for the automatic
+checks, and downloads a new version from the project's GitHub releases only when the user clicks
+*Install and restart*. Like any web request, these reveal the computer's IP address and the app
+version to GitHub; nothing else is sent. It opens the project page on GitHub only when the user clicks
+a link to it.

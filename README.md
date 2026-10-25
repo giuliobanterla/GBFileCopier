@@ -75,6 +75,20 @@ application menu; on Windows in the File and Help menus.
 The app follows the light or dark appearance of the system; Settings can force light or dark
 instead, with immediate effect.
 
+### Updates
+
+At the first start the app asks whether it may look for new versions by itself; if you agree, it asks
+GitHub once a day (the choice can be changed in Settings, and *Check for Updates…* in the Help menu,
+or in the application menu on macOS, checks at any time). When a new version is out, a bar at the top
+of the window offers **Install and restart**: the app downloads the package for your system, checks
+it against the release's `SHA256SUMS.txt` and its signature (on macOS: signed with the project's
+Developer ID and notarized; on Windows, once releases are signed, by the same publisher as the
+installed app), then quits and installs it — the Windows installer silently, for the same user or
+for all users as before; on macOS the app in Applications is replaced — and opens the new version.
+Updates wait until no job is running. The portable `.zip` on Windows, and a copy of the app on macOS
+in a folder you cannot write to, show **Download…** instead, which opens the release page. To try
+the update with an older version number: `GBFILECOPIER_PRETEND_VERSION=0.1.0`.
+
 ### Finder extension (macOS)
 
 The app includes a Finder extension that adds GBFileCopier to the context menu:

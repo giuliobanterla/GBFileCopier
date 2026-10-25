@@ -29,6 +29,10 @@
       </ComboBox>
     </Grid>
 
+    <CheckBox IsChecked="{Binding CheckForUpdates}">
+      <TextBlock Text="{x:Static res:Strings.SettingsCheckForUpdates}" TextWrapping="Wrap" />
+    </CheckBox>
+
     <TextBlock Classes="subtle" Text="{x:Static res:Strings.LanguageRestart}" TextWrapping="Wrap" IsVisible="{Binding NeedsRestart}" />
     <TextBlock Classes="subtle" Text="{Binding Location}" TextWrapping="Wrap" IsVisible="{Binding Location, Converter={x:Static ObjectConverters.IsNotNull}}" />
 

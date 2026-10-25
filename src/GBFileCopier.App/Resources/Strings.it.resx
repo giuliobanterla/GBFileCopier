@@ -322,4 +322,73 @@
   <data name="ThemeDark" xml:space="preserve">
     <value>Scuro</value>
   </data>
+  <data name="UpdateAskAutomatic" xml:space="preserve">
+    <value>Vuoi che GBFileCopier controlli automaticamente se ci sono nuove versioni? L'app interroga GitHub una volta al giorno e non invia nient'altro.</value>
+  </data>
+  <data name="UpdateYes" xml:space="preserve">
+    <value>Sì, controlla</value>
+  </data>
+  <data name="UpdateNo" xml:space="preserve">
+    <value>No, grazie</value>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>Controllo degli aggiornamenti…</value>
+  </data>
+  <data name="UpdateUpToDate" xml:space="preserve">
+    <value>GBFileCopier {0} è l'ultima versione</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>È disponibile GBFileCopier {0} (hai la {1})</value>
+  </data>
+  <data name="UpdateInstall" xml:space="preserve">
+    <value>Installa e riavvia</value>
+  </data>
+  <data name="UpdateDownloadPage" xml:space="preserve">
+    <value>Scarica…</value>
+  </data>
+  <data name="UpdateWhatsNew" xml:space="preserve">
+    <value>Novità</value>
+  </data>
+  <data name="UpdateLater" xml:space="preserve">
+    <value>Più tardi</value>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>Download di GBFileCopier {0}…</value>
+  </data>
+  <data name="UpdateWaitForJobs" xml:space="preserve">
+    <value>Finisci o annulla i lavori, poi installa</value>
+  </data>
+  <data name="UpdateInstalling" xml:space="preserve">
+    <value>Installazione di GBFileCopier {0}: l'app si riavvia da sola</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>L'aggiornamento non è riuscito: {0}</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Impossibile controllare gli aggiornamenti: {0}</value>
+  </data>
+  <data name="UpdateNoChecksums" xml:space="preserve">
+    <value>la release non ha il checksum di questo file</value>
+  </data>
+  <data name="UpdateChecksumMismatch" xml:space="preserve">
+    <value>il file scaricato è danneggiato (checksum diverso)</value>
+  </data>
+  <data name="UpdateNotSigned" xml:space="preserve">
+    <value>l'app scaricata non è firmata dallo sviluppatore di GBFileCopier</value>
+  </data>
+  <data name="UpdateWrongVersion" xml:space="preserve">
+    <value>l'app scaricata non è la versione attesa</value>
+  </data>
+  <data name="UpdateNoPackage" xml:space="preserve">
+    <value>la release non ha un pacchetto per questo sistema</value>
+  </data>
+  <data name="UpdateFailedGeneric" xml:space="preserve">
+    <value>l'installazione non è partita</value>
+  </data>
+  <data name="MenuCheckForUpdates" xml:space="preserve">
+    <value>Controlla aggiornamenti…</value>
+  </data>
+  <data name="SettingsCheckForUpdates" xml:space="preserve">
+    <value>Controlla automaticamente gli aggiornamenti (una volta al giorno, su GitHub)</value>
+  </data>
 </root>

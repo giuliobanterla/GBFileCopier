@@ -39,6 +39,8 @@ public partial class MainWindow : Window
 
     public async void ShowAbout() => await new AboutWindow().ShowDialog(this);
 
+    public void CheckForUpdates() => _ = ViewModel?.Updates?.CheckNowAsync();
+
     /// <summary>
     /// File and Help menus. On macOS they go to the system menu bar, after the application menu
     /// (which has About, Settings and Quit, see App); elsewhere the NativeMenuBar shows them in the window.
@@ -55,6 +57,10 @@ public partial class MainWindow : Window
             Item(Strings.MenuPasteFilesToMove, () => ViewModel?.Paste(move: true)),
         };
         var help = new NativeMenu { Item(Strings.MenuWebsite, () => _ = Launcher.LaunchUriAsync(AboutWindow.Website)) };
+        if (!OperatingSystem.IsMacOS())
+        {
+            help.Add(Item(Strings.MenuCheckForUpdates, CheckForUpdates));
+        }
 
         if (!OperatingSystem.IsMacOS())
         {
