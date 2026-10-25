@@ -17,7 +17,7 @@
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/giuliobanterla/GBFileCopier</RepositoryUrl>
     <!-- Version of local and CI builds. Releases take theirs from the tag (v0.3.1): keep this equal to the latest release -->
-    <VersionPrefix>0.4.2</VersionPrefix>
+    <VersionPrefix>0.4.3</VersionPrefix>
   </PropertyGroup>
 
   <!-- Libraries and executables under src/ must stay Native AOT compatible -->
