@@ -43,6 +43,8 @@ CI (`.github/workflows/ci.yml`) builds and tests on `windows-x64`, `macos-arm64`
 these three checks are required. The maintainer's Mac is Intel x64: locally only macOS x64 code
 runs, Windows and arm64 paths are verified only by CI. Keep platform code behind
 `OperatingSystem.IsWindows()` / `IsMacOS()` and think through both branches.
+Before opening a PR that touches platform code, interop, paths or AOT-sensitive code, run the
+`cross-platform-reviewer` subagent (`.claude/agents/cross-platform-reviewer.md`).
 
 ## Localization
 
