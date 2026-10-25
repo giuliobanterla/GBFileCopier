@@ -393,6 +393,9 @@ public static class Strings
     /// <summary>the release has no package for this system</summary>
     public static string UpdateNoPackage => Get();
 
+    /// <summary>the installation did not complete (code {0})</summary>
+    public static string UpdateNotCompleted => Get();
+
     /// <summary>the installation could not start</summary>
     public static string UpdateFailedGeneric => Get();
 

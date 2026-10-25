@@ -241,19 +241,25 @@ public sealed partial class UpdateViewModel : ViewModelBase, IDisposable
 
         Message = string.Format(CultureInfo.CurrentCulture, Strings.UpdateInstalling, release.Version);
         State = UpdateState.Installing;
+        bool quit;
         try
         {
-            _service.Install(_prepared);
+            quit = await _service.InstallAsync(_prepared);
         }
         catch (Exception ex) when (ex is UpdateException or InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
         {
-            // For example: the administrator rights were refused
+            // For example: the administrator rights were refused, or the download was removed meanwhile.
+            // The next click downloads and checks it again.
+            _prepared = null;
             Message = string.Format(CultureInfo.CurrentCulture, Strings.UpdateFailed, ex.Message);
             State = UpdateState.Failed;
             return;
         }
 
-        _quit();
+        if (quit)
+        {
+            _quit();
+        }
     }
 
     private bool CanInstallNow() => State == UpdateState.Available && (!_service.CanInstall || _canRestart());

@@ -3,7 +3,10 @@ using GBFileCopier.Core;
 namespace GBFileCopier.App.Services.Updates;
 
 /// <summary>A downloaded and checked update, ready to install.</summary>
-public sealed record PreparedUpdate(UpdateVersion Version, string Path);
+/// <param name="Version">Its version.</param>
+/// <param name="Path">The setup (Windows) or the .app taken out of the disk image (macOS).</param>
+/// <param name="Sha256">The file's checksum when it was checked, to check it again before running it.</param>
+public sealed record PreparedUpdate(UpdateVersion Version, string Path, string? Sha256 = null);
 
 /// <summary>What the update banner needs; the app uses <see cref="UpdateService"/>, tests a fake.</summary>
 public interface IUpdateService
@@ -20,8 +23,10 @@ public interface IUpdateService
     /// <param name="progress">From 0 to 1.</param>
     Task<PreparedUpdate> DownloadAsync(ReleaseInfo release, IProgress<double> progress, CancellationToken cancellationToken);
 
-    /// <summary>Starts the installation; the app must quit right after.</summary>
-    void Install(PreparedUpdate update);
+    /// <summary>Starts the installation.</summary>
+    /// <returns>True if the app must quit now (macOS); on Windows setup closes the app itself.</returns>
+    /// <exception cref="UpdateException">The installation did not happen.</exception>
+    Task<bool> InstallAsync(PreparedUpdate update);
 }
 
 public sealed class UpdateService : IUpdateService, IDisposable
@@ -45,7 +50,7 @@ public sealed class UpdateService : IUpdateService, IDisposable
 
     public bool CanInstall => _installer?.CanInstall == true;
 
-    /// <summary>Where the downloads go; removed by the installation (macOS) or at the next check.</summary>
+    /// <summary>Where the downloads go; removed by the installation (macOS) or at the next download.</summary>
     public static string DownloadFolder { get; } = Path.Combine(Path.GetTempPath(), "GBFileCopier-update");
 
     public void Dispose() => _http.Dispose();
@@ -59,13 +64,13 @@ public sealed class UpdateService : IUpdateService, IDisposable
         var asset = release.Find(installer.PackageName(release.Version)) ?? throw new UpdateException(Resources.Strings.UpdateNoPackage);
         CleanDownloadFolder();
         var package = await _downloader.DownloadAsync(release, asset, DownloadFolder, progress, cancellationToken);
-        return new PreparedUpdate(release.Version, await installer.PrepareAsync(package, release.Version, cancellationToken));
+        return await installer.PrepareAsync(package, release.Version, cancellationToken);
     }
 
-    public void Install(PreparedUpdate update)
+    public Task<bool> InstallAsync(PreparedUpdate update)
     {
         ArgumentNullException.ThrowIfNull(update);
-        (_installer ?? throw new UpdateException(Resources.Strings.UpdateFailedGeneric)).Launch(update.Path);
+        return (_installer ?? throw new UpdateException(Resources.Strings.UpdateFailedGeneric)).LaunchAsync(update, CancellationToken.None);
     }
 
     private static void CleanDownloadFolder()

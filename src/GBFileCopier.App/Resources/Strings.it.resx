@@ -382,6 +382,9 @@
   <data name="UpdateNoPackage" xml:space="preserve">
     <value>la release non ha un pacchetto per questo sistema</value>
   </data>
+  <data name="UpdateNotCompleted" xml:space="preserve">
+    <value>l'installazione non è stata completata (codice {0})</value>
+  </data>
   <data name="UpdateFailedGeneric" xml:space="preserve">
     <value>l'installazione non è partita</value>
   </data>

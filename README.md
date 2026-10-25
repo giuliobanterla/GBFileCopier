@@ -83,8 +83,9 @@ or in the application menu on macOS, checks at any time). When a new version is 
 of the window offers **Install and restart**: the app downloads the package for your system, checks
 it against the release's `SHA256SUMS.txt` and its signature (on macOS: signed with the project's
 Developer ID and notarized; on Windows, once releases are signed, by the same publisher as the
-installed app), then quits and installs it — the Windows installer silently, for the same user or
-for all users as before; on macOS the app in Applications is replaced — and opens the new version.
+installed app), then installs it and opens the new version: on Windows the installer runs silently, for the same
+user or for all users as before (then Windows asks for administrator rights), and closes the app
+itself; on macOS the app quits and is replaced in Applications.
 Updates wait until no job is running. The portable `.zip` on Windows, and a copy of the app on macOS
 in a folder you cannot write to, show **Download…** instead, which opens the release page. To try
 the update with an older version number: `GBFILECOPIER_PRETEND_VERSION=0.1.0`.

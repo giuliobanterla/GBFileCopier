@@ -171,7 +171,8 @@ public sealed class UpdateTests : IDisposable
         Assert.True(installer.CanInstall);
 
         Assert.Equal("GBFileCopier-0.4.0-windows-x64-setup.exe", installer.PackageName(UpdateVersion.Parse("0.4.0")!));
-        Assert.Equal(["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS", "/CURRENTUSER", "/RELAUNCH=1"], installer.SetupArguments());
+        // No /CURRENTUSER or /ALLUSERS: setup keeps the previous install mode (UsePreviousPrivileges)
+        Assert.Equal("/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /FORCECLOSEAPPLICATIONS /RELAUNCH=1", WindowsUpdateInstaller.SetupArguments);
     }
 
     [Fact]
@@ -200,7 +201,7 @@ public sealed class UpdateTests : IDisposable
 
         var target = _temp.CreateFile("Applications/GBFileCopier.app/Contents/version", text: "old");
         var newApp = _temp.CreateFile("work/GBFileCopier.app/Contents/version", text: "new");
-        var script = _temp.CreateFile("work/install.sh", text: MacUpdateInstaller.InstallScript.Replace("/usr/bin/open", "true", StringComparison.Ordinal));
+        var script = _temp.CreateFile("work/install.sh", text: ScriptForTests);
 
         await RunScript(script, _temp.Combine("Applications", "GBFileCopier.app"), _temp.Combine("work", "GBFileCopier.app"), _temp.Combine("work"));
 
@@ -209,10 +210,46 @@ public sealed class UpdateTests : IDisposable
         Assert.False(Directory.Exists(_temp.Combine("Applications", "GBFileCopier.app.gbcopy-old")));
 
         // A missing new app: the installed one stays
-        var script2 = _temp.CreateFile("work2/install.sh", text: MacUpdateInstaller.InstallScript.Replace("/usr/bin/open", "true", StringComparison.Ordinal));
+        var script2 = _temp.CreateFile("work2/install.sh", text: ScriptForTests);
         await RunScript(script2, _temp.Combine("Applications", "GBFileCopier.app"), _temp.Combine("work2", "missing.app"), _temp.Combine("work2"));
         Assert.Equal("new", File.ReadAllText(target));
         _ = newApp;
+    }
+
+    /// <summary>The install script without its effects outside the test folder (open, the Finder extension).</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("macos")]
+    private static string ScriptForTests => MacUpdateInstaller.InstallScript
+        .Replace("/usr/bin/open", "true", StringComparison.Ordinal)
+        .Replace("/usr/bin/pluginkit", "true", StringComparison.Ordinal)
+        .Replace("/usr/bin/pkill", "true", StringComparison.Ordinal);
+
+    [AvaloniaFact]
+    public async Task Install_NotCompleted_StaysOpenAndDownloadsAgainNextTime()
+    {
+        var h = new Harness();
+        h.Service.InstallError = new UpdateException("the installation did not complete (code 5)");
+        var bar = h.Create();
+        await bar.CheckNowAsync();
+
+        await bar.InstallCommand.ExecuteAsync(null);
+
+        Assert.False(h.Quit);
+        Assert.Equal(UpdateState.Failed, bar.State);
+        Assert.Contains("code 5", bar.Message, StringComparison.Ordinal);
+    }
+
+    [AvaloniaFact]
+    public async Task Install_OnWindows_SetupClosesTheApp()
+    {
+        var h = new Harness();
+        h.Service.QuitsTheApp = false;
+        var bar = h.Create();
+        await bar.CheckNowAsync();
+
+        await bar.InstallCommand.ExecuteAsync(null);
+
+        Assert.False(h.Quit); // setup closes it through the Restart Manager
+        Assert.Equal(UpdateState.Installing, bar.State);
     }
 
     private static async Task RunScript(string script, string target, string newApp, string work)
@@ -255,7 +292,15 @@ public sealed class UpdateTests : IDisposable
             return Task.FromResult(new PreparedUpdate(release.Version, "/tmp/setup"));
         }
 
-        public void Install(PreparedUpdate update) => Installed = update;
+        public bool QuitsTheApp { get; set; } = true;
+
+        public Exception? InstallError { get; set; }
+
+        public Task<bool> InstallAsync(PreparedUpdate update)
+        {
+            Installed = update;
+            return InstallError is null ? Task.FromResult(QuitsTheApp) : Task.FromException<bool>(InstallError);
+        }
     }
 
     private sealed class Harness

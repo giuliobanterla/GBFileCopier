@@ -19,8 +19,9 @@ public static unsafe partial class WindowsAuthenticode
     private static readonly Guid GenericVerifyV2 = new("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
 
     /// <summary>
-    /// The subject of the certificate that signed <paramref name="path"/> (for example
-    /// "CN=SignPath Foundation, …"), if the signature is valid and its chain trusted; otherwise null.
+    /// The name (CN) of whoever signed <paramref name="path"/>, for example "SignPath Foundation",
+    /// if the signature is valid and its chain trusted; otherwise null. Only the name: a renewed
+    /// certificate may change the other parts of the subject.
     /// </summary>
     public static string? TrustedSigner(string path)
     {
@@ -35,7 +36,10 @@ public static unsafe partial class WindowsAuthenticode
 #pragma warning disable SYSLIB0057 // the only API that reads the signer of a signed file; the signature was verified above
             using var certificate = X509Certificate.CreateFromSignedFile(path);
 #pragma warning restore SYSLIB0057
-            return certificate.Subject;
+            return new X500DistinguishedName(certificate.Subject)
+                .EnumerateRelativeDistinguishedNames()
+                .FirstOrDefault(n => n.GetSingleElementType().Value == "2.5.4.3")? // CN
+                .GetSingleElementValue();
         }
         catch (CryptographicException)
         {

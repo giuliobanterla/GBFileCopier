@@ -120,7 +120,7 @@ public sealed class ScreenshotTests : IDisposable
         public Task<PreparedUpdate> DownloadAsync(ReleaseInfo release, IProgress<double> progress, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public void Install(PreparedUpdate update) => throw new NotSupportedException();
+        public Task<bool> InstallAsync(PreparedUpdate update) => throw new NotSupportedException();
     }
 
     [AvaloniaFact]
