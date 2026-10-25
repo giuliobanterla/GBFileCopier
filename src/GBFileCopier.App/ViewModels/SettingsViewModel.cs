@@ -28,6 +28,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         SelectedLanguage = Languages.FirstOrDefault(l => l.Code == _initialLanguage) ?? Languages[0];
         SelectedTheme = Themes.FirstOrDefault(t => t.Theme == settings.Theme) ?? Themes[0];
         CheckForUpdates = settings.CheckForUpdates == true;
+        FlushOnNetworkShares = settings.FlushOnNetworkShares;
         Location = location is null ? null : string.Format(CultureInfo.CurrentCulture, Strings.SettingsLocation, location);
         _initialized = true; // from now on, changes are the user's: save them
     }
@@ -54,6 +55,10 @@ public sealed partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     public partial ThemeOption SelectedTheme { get; set; }
 
+    /// <summary>Force every file to disk also on network shares; for the next jobs.</summary>
+    [ObservableProperty]
+    public partial bool FlushOnNetworkShares { get; set; }
+
     /// <summary>Automatic update checks (GitHub, once a day); takes effect within the hour.</summary>
     [ObservableProperty]
     public partial bool CheckForUpdates { get; set; }
@@ -71,6 +76,14 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
 
         _store.Save(_store.Load() with { Language = value.Code });
+    }
+
+    partial void OnFlushOnNetworkSharesChanged(bool value)
+    {
+        if (_initialized)
+        {
+            _store.Save(_store.Load() with { FlushOnNetworkShares = value });
+        }
     }
 
     partial void OnCheckForUpdatesChanged(bool value)

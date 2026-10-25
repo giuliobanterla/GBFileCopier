@@ -67,6 +67,14 @@ public sealed record CopyOptions
     /// <summary>Force the data to disk before the file is considered copied.</summary>
     public bool FlushToDisk { get; init; } = true;
 
+    /// <summary>
+    /// Also force each file to disk when the destination is a network share. Off by default: the
+    /// server then has to write the file to its disks before answering, which made copies of many
+    /// small files to a NAS several times slower (137 s instead of 28 s for 150 files of 2 MB).
+    /// The server still writes its cache out by itself within seconds.
+    /// </summary>
+    public bool FlushOnNetworkShares { get; init; }
+
     /// <summary>How many times a file is retried after a transient error.</summary>
     public int RetryCount { get; init; } = 2;
 

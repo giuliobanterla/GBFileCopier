@@ -144,6 +144,7 @@ gbcopy hash <files>... [--hash <algorithm>]
 | `-c`, `--on-conflict <policy>` | `ask` (default when interactive), `overwrite`, `newer`, `skip` (default otherwise), `keep-both` |
 | `--retries <n>` | Attempts after a transient error (default 2) |
 | `--no-flush` | Don't force each file to disk (faster, less safe) |
+| `--flush-network` | Force each file to disk also on network shares (much slower with many small files) |
 
 Each file is written to a hidden temporary name, checked, and only then renamed into place:
 an interrupted copy never leaves partial files and never damages an existing one. With `move`,
@@ -154,7 +155,11 @@ On Windows and macOS, native APIs make the safety checks real:
 - **Verification reads from the disk**, not from the memory cache that still holds the data just
   written (`FILE_FLAG_NO_BUFFERING` on Windows; cache eviction plus `F_NOCACHE` on macOS).
 - **Flushing reaches permanent storage** (`FlushFileBuffers`; `F_FULLFSYNC` on macOS, which also
-  empties the drive's own cache).
+  empties the drive's own cache). On network shares (a NAS) files are not flushed one by one by
+  default: the server must then write each file to its disks before answering, which made copies
+  of many small files several times slower (150 photos of 2 MB to a Synology: 120 s instead of
+  27 s). The NAS writes its cache to disk by itself within seconds; `--flush-network`, or the
+  option in Settings, flushes every file there too.
 - **Moves on the same volume are instant renames**; across volumes they become copy, verify, delete.
 
 ### Copy (or cut) in the file manager, paste with GBFileCopier

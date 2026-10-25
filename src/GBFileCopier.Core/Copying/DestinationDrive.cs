@@ -43,6 +43,25 @@ public static class DestinationDrive
     private static bool IsMacSystemVolume(string mountPoint) =>
         mountPoint.StartsWith("/System/Volumes/", StringComparison.Ordinal);
 
+    /// <summary>The destination is on a network share (SMB, NFS…): \\server\share, a mapped drive, a mounted share.</summary>
+    public static bool IsNetwork(string path)
+    {
+        var key = KeyFor(path);
+        if (key.StartsWith(@"\\", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        try
+        {
+            return new DriveInfo(key).DriveType == DriveType.Network;
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
     private static bool Contains(string mountPoint, string path)
     {
         var comparison = KeyComparer == StringComparer.Ordinal ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;

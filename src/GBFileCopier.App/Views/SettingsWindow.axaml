@@ -29,6 +29,10 @@
       </ComboBox>
     </Grid>
 
+    <CheckBox IsChecked="{Binding FlushOnNetworkShares}">
+      <TextBlock Text="{x:Static res:Strings.SettingsFlushOnNetwork}" TextWrapping="Wrap" />
+    </CheckBox>
+
     <CheckBox IsChecked="{Binding CheckForUpdates}">
       <TextBlock Text="{x:Static res:Strings.SettingsCheckForUpdates}" TextWrapping="Wrap" />
     </CheckBox>

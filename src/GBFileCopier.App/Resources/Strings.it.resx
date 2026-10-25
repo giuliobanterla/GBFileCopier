@@ -391,6 +391,9 @@
   <data name="MenuCheckForUpdates" xml:space="preserve">
     <value>Controlla aggiornamenti…</value>
   </data>
+  <data name="SettingsFlushOnNetwork" xml:space="preserve">
+    <value>Forza su disco ogni file anche sulle condivisioni di rete (più sicuro se il NAS perde la corrente, ma molto più lento con tanti file piccoli)</value>
+  </data>
   <data name="SettingsCheckForUpdates" xml:space="preserve">
     <value>Controlla automaticamente gli aggiornamenti (una volta al giorno, su GitHub)</value>
   </data>

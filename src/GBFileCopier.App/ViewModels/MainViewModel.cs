@@ -275,6 +275,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
                 HashAlgorithm = SelectedHash.Kind,
                 Verify = Verify,
                 ConflictPolicy = SelectedConflict.Policy,
+                FlushOnNetworkShares = _settingsStore.Load().FlushOnNetworkShares, // may have changed in Settings meanwhile
             },
         };
 
