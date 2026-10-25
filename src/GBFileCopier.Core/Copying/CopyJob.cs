@@ -44,6 +44,18 @@ public sealed class CopyJob
     /// <summary>Each file is forced to disk: asked for, and the destination is not a network share (unless asked for there too).</summary>
     public bool FlushesEachFile { get; }
 
+    /// <summary>
+    /// Called once the sources have been scanned, with the files to copy in copy order (and where
+    /// each one goes). Called on a thread pool thread: a UI must dispatch to its own thread.
+    /// </summary>
+    public Action<IReadOnlyList<PlannedFile>>? Planned { get; set; }
+
+    /// <summary>
+    /// Called for each file, link or folder as soon as it is done (copied, skipped, failed or
+    /// cancelled), also for the problems found while scanning. Called on a thread pool thread.
+    /// </summary>
+    public Action<FileCopyResult>? FileFinished { get; set; }
+
     private CopyOptions Options => Request.Options;
 
     private int Passes => Options.Verify ? 2 : 1;
@@ -77,6 +89,12 @@ public sealed class CopyJob
         CancellationToken cancellationToken)
     {
         var results = new List<FileCopyResult>();
+        void Add(FileCopyResult result)
+        {
+            results.Add(result);
+            FileFinished?.Invoke(result);
+        }
+
         progress?.Report(new CopyProgress(CopyPhase.Scanning, null, 0, 0, 0, 0, TimeSpan.Zero));
 
         CopyPlan plan;
@@ -89,35 +107,39 @@ public sealed class CopyJob
             return CreateResult(results, TimeSpan.Zero, wasCancelled: true);
         }
 
-        results.AddRange(plan.Errors.Select(e => new FileCopyResult
+        Planned?.Invoke([.. plan.Files.Select(f => new PlannedFile(f.Kind, f.SourcePath, f.DestinationPath, f.Length))]);
+        foreach (var error in plan.Errors)
         {
-            SourcePath = e.SourcePath,
-            DestinationPath = e.DestinationPath,
-            Status = FileCopyStatus.Failed,
-            Error = e.Message,
-        }));
+            Add(new FileCopyResult
+            {
+                SourcePath = error.SourcePath,
+                DestinationPath = error.DestinationPath,
+                Status = FileCopyStatus.Failed,
+                Error = error.Message,
+            });
+        }
 
         var tracker = new ProgressTracker(progress, plan.TotalBytes * Passes, plan.Files.Count);
-        CreateDirectories(plan, results);
+        CreateDirectories(plan, Add);
 
         var cancelled = false;
         foreach (var item in plan.Files)
         {
             if (cancelled)
             {
-                results.Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled));
+                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled));
                 continue;
             }
 
             try
             {
                 await _pause.WaitIfPausedAsync(cancellationToken);
-                results.Add(await ProcessItemAsync(item, tracker, conflictResolver, cancellationToken));
+                Add(await ProcessItemAsync(item, tracker, conflictResolver, cancellationToken));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 cancelled = true;
-                results.Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled));
+                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled));
             }
 
             tracker.CompleteFile();
@@ -142,7 +164,7 @@ public sealed class CopyJob
         CopiedBytes = results.Where(r => r.Status == FileCopyStatus.Succeeded).Sum(r => r.Length),
     };
 
-    private static void CreateDirectories(CopyPlan plan, List<FileCopyResult> results)
+    private static void CreateDirectories(CopyPlan plan, Action<FileCopyResult> add)
     {
         foreach (var directory in plan.Directories)
         {
@@ -152,7 +174,7 @@ public sealed class CopyJob
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                results.Add(CreateItemResult(directory, directory.DestinationPath, FileCopyStatus.Failed, error: ex.Message));
+                add(CreateItemResult(directory, directory.DestinationPath, FileCopyStatus.Failed, error: ex.Message));
             }
         }
     }

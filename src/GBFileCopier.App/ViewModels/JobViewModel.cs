@@ -21,7 +21,10 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
     private readonly DriveScheduler _scheduler;
     private readonly Func<FileConflict, CancellationToken, Task<ConflictAnswer>> _askConflict;
     private readonly IReadOnlyList<string>? _cutPaths;
-    private readonly List<ResultItem> _allResults = [];
+    private readonly List<JobFileItem> _files = [];
+    // The same source can be planned more than once (a file, and its folder too): rows in copy order
+    private readonly Dictionary<string, List<JobFileItem>> _filesBySource = new(DestinationDrive.KeyComparer);
+    private readonly HashSet<FileCopyResult> _applied = new(ReferenceEqualityComparer.Instance);
     private readonly CancellationTokenSource _cancellation = new();
     private readonly SpeedMeter _speed = new();
     private CopyJob? _job;
@@ -49,6 +52,7 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         DriveKey = driveKey;
         Title = string.Format(CultureInfo.CurrentCulture, request.Mode == CopyMode.Move ? Strings.JobMoveTo : Strings.JobCopyTo, request.Destination);
         ItemsText = string.Format(CultureInfo.CurrentCulture, Strings.JobItems, request.Sources.Count);
+        SelectedFilter = FilterOptions[0];
     }
 
     public string Title { get; }
@@ -106,13 +110,42 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
     public string StatusLine =>
         IsRunning || string.IsNullOrEmpty(Summary) ? StatusText : StatusText + "  ·  " + Summary;
 
-    public ObservableCollection<ResultItem> Results { get; } = [];
+    /// <summary>
+    /// The files of the job that <see cref="SelectedFilter"/> lets through, in copy order. Replaced
+    /// as a whole when the filter changes: one notification instead of one per file (jobs can have
+    /// tens of thousands).
+    /// </summary>
+    [ObservableProperty]
+    public partial ObservableCollection<JobFileItem> Files { get; private set; } = [];
+
+    public IReadOnlyList<JobFileFilterOption> FilterOptions { get; } = JobFileFilterOption.CreateAll();
 
     [ObservableProperty]
-    public partial bool ShowAllResults { get; set; }
+    public partial JobFileFilterOption SelectedFilter { get; set; }
+
+    /// <summary>The sources have been scanned: the list of files is known.</summary>
+    [ObservableProperty]
+    public partial bool HasFiles { get; private set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FilesSummary))]
+    public partial int QueuedCount { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FilesSummary))]
+    public partial long QueuedBytes { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FilesSummary))]
+    public partial int DoneCount { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FilesSummary))]
     public partial int ProblemCount { get; private set; }
+
+    /// <summary>"Queued: 1,234 (45.6 GB)  ·  done: 120  ·  problems: 2", under the "Files" title.</summary>
+    public string FilesSummary => string.Format(CultureInfo.CurrentCulture, Strings.JobFilesSummary,
+        QueuedCount, ByteSize.Format(QueuedBytes, CultureInfo.CurrentCulture), DoneCount, ProblemCount);
 
     /// <summary>Completes when the job is over (also when cancelled); null before <see cref="Start"/>.</summary>
     public Task? Completion { get; private set; }
@@ -126,7 +159,7 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         return Completion;
     }
 
-    partial void OnShowAllResultsChanged(bool value) => RefreshResults();
+    partial void OnSelectedFilterChanged(JobFileFilterOption value) => RefreshFiles();
 
     [RelayCommand(CanExecute = nameof(IsRunning))]
     private void TogglePause()
@@ -191,7 +224,12 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
             IsRunning = true;
             try
             {
-                _job = new CopyJob(_request, _ui.Platform);
+                _job = new CopyJob(_request, _ui.Platform)
+                {
+                    // From the copy threads: posted in order to the UI thread
+                    Planned = files => Dispatcher.UIThread.Post(() => OnPlanned(files)),
+                    FileFinished = result => Dispatcher.UIThread.Post(() => Apply(result)),
+                };
                 // Created on the UI thread: reports from the copy threads are posted back to it
                 var progress = new Progress<CopyProgress>(OnProgress);
                 var result = await _job.RunAsync(progress, ResolveConflictAsync, token);
@@ -217,6 +255,13 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         }
 
         ProgressPercent = progress.Fraction * 100;
+        // The row being copied: the first one of that source not finished yet
+        if (progress.CurrentFile is { } current
+            && _filesBySource.GetValueOrDefault(current)?.FirstOrDefault(f => !f.IsDone) is { IsQueued: true } copying)
+        {
+            copying.StartCopying();
+        }
+
         if (IsPaused || _cancellation.IsCancellationRequested)
         {
             return;
@@ -253,10 +298,13 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
 
     private void ShowResult(CopyJobResult result)
     {
-        _allResults.AddRange(result.Files.Select(f => new ResultItem(f, result.Mode)));
-        ProblemCount = _allResults.Count(r => r.IsProblem);
-        ShowAllResults = ProblemCount == 0;
-        RefreshResults();
+        // Results still on their way to the UI thread are applied now, in order
+        foreach (var file in result.Files)
+        {
+            Apply(file);
+        }
+
+        SelectedFilter = FilterOptions.First(o => o.Filter == (ProblemCount > 0 ? JobFileFilter.Problems : JobFileFilter.All));
 
         var verified = result.Files.Count(f => f.Verified);
         var parts = new List<string>
@@ -297,14 +345,77 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void RefreshResults()
+    internal void OnPlanned(IReadOnlyList<PlannedFile> planned)
     {
-        Results.Clear();
-        foreach (var item in ShowAllResults ? _allResults : _allResults.Where(r => r.IsProblem))
+        foreach (var file in planned)
         {
-            Results.Add(item);
+            var item = JobFileItem.Queued(file);
+            _files.Add(item);
+            if (!_filesBySource.TryGetValue(file.SourcePath, out var rows))
+            {
+                _filesBySource[file.SourcePath] = rows = [];
+            }
+
+            rows.Add(item);
         }
+
+        QueuedCount = planned.Count;
+        QueuedBytes = planned.Sum(f => f.Length);
+        HasFiles = true;
+        RefreshFiles();
     }
+
+    /// <summary>A file is done: its row, the counters and the filtered list follow. Each result is applied once.</summary>
+    internal void Apply(FileCopyResult result)
+    {
+        if (!_applied.Add(result))
+        {
+            return;
+        }
+
+        // The first row of this source still to finish: files are copied in plan order
+        var item = _filesBySource.GetValueOrDefault(result.SourcePath)?.FirstOrDefault(f => !f.IsDone);
+        var isNew = item is null;
+        if (isNew)
+        {
+            // Not in the plan: a problem found while scanning, or a folder that could not be created
+            item = JobFileItem.Finished(result, Mode);
+            _files.Add(item);
+        }
+        else
+        {
+            QueuedCount--;
+            QueuedBytes -= item!.Length;
+            item.Complete(result, Mode);
+            if (SelectedFilter.Filter == JobFileFilter.Queued)
+            {
+                Files.Remove(item);
+            }
+        }
+
+        DoneCount++;
+        if (item.IsProblem)
+        {
+            ProblemCount++;
+        }
+
+        if (Shows(item) && (isNew || SelectedFilter.Filter is JobFileFilter.Done or JobFileFilter.Problems))
+        {
+            Files.Add(item);
+        }
+
+        HasFiles = true;
+    }
+
+    private bool Shows(JobFileItem item) => SelectedFilter.Filter switch
+    {
+        JobFileFilter.Queued => !item.IsDone,
+        JobFileFilter.Done => item.IsDone,
+        JobFileFilter.Problems => item.IsProblem,
+        _ => true,
+    };
+
+    private void RefreshFiles() => Files = new ObservableCollection<JobFileItem>(_files.Where(Shows));
 
     /// <summary>
     /// How to name a drive to the user: "Backup (D:)" on Windows, "Backup" for /Volumes/Backup on

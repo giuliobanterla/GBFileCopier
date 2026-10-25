@@ -91,12 +91,6 @@
   <data name="JobAdded" xml:space="preserve">
     <value>Aggiunto ai lavori qui sotto: puoi preparare il prossimo</value>
   </data>
-  <data name="Results" xml:space="preserve">
-    <value>Risultati</value>
-  </data>
-  <data name="ShowAllFiles" xml:space="preserve">
-    <value>Mostra tutti i file</value>
-  </data>
   <data name="ConflictTitle" xml:space="preserve">
     <value>Il file esiste già</value>
   </data>
@@ -207,6 +201,30 @@
   </data>
   <data name="SummaryNotProcessed" xml:space="preserve">
     <value>non elaborati: {0}</value>
+  </data>
+  <data name="StatusQueued" xml:space="preserve">
+    <value>In coda</value>
+  </data>
+  <data name="StatusCopying" xml:space="preserve">
+    <value>In copia</value>
+  </data>
+  <data name="JobFiles" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="JobFilesSummary" xml:space="preserve">
+    <value>In coda: {0} ({1})  ·  completati: {2}  ·  problemi: {3}</value>
+  </data>
+  <data name="FilterAll" xml:space="preserve">
+    <value>Tutti</value>
+  </data>
+  <data name="FilterQueued" xml:space="preserve">
+    <value>In coda</value>
+  </data>
+  <data name="FilterDone" xml:space="preserve">
+    <value>Completati</value>
+  </data>
+  <data name="FilterProblems" xml:space="preserve">
+    <value>Problemi</value>
   </data>
   <data name="StatusMoved" xml:space="preserve">
     <value>Spostato</value>

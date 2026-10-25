@@ -165,24 +165,33 @@
       </ListBox>
     </Grid>
 
-    <!-- Results of the selected job -->
-    <Grid Grid.Row="5" RowDefinitions="Auto,Auto" RowSpacing="6" IsVisible="{Binding SelectedJob.IsFinished, FallbackValue=False}">
+    <!-- Files of the selected job: queued, being copied, done; where each one goes -->
+    <Grid Grid.Row="5" RowDefinitions="Auto,Auto,Auto" RowSpacing="6" IsVisible="{Binding SelectedJob.HasFiles, FallbackValue=False}">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-        <TextBlock Classes="section" Text="{x:Static res:Strings.Results}" />
+        <TextBlock Classes="section" Text="{x:Static res:Strings.JobFiles}" />
         <TextBlock Grid.Column="1" Classes="subtle" Text="{Binding SelectedJob.Title, FallbackValue=''}"
                    TextTrimming="PathSegmentEllipsis" VerticalAlignment="Center" />
-        <CheckBox Grid.Column="2" Content="{x:Static res:Strings.ShowAllFiles}" IsChecked="{Binding SelectedJob.ShowAllResults, FallbackValue=False}" />
+        <ComboBox Grid.Column="2" ItemsSource="{Binding SelectedJob.FilterOptions, FallbackValue={x:Null}}"
+                  SelectedItem="{Binding SelectedJob.SelectedFilter, FallbackValue={x:Null}}" MinWidth="130">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:JobFileFilterOption">
+              <TextBlock Text="{Binding Label}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
       </Grid>
-      <ListBox Grid.Row="1" ItemsSource="{Binding SelectedJob.Results, FallbackValue={x:Null}}" Height="130">
+      <TextBlock Grid.Row="1" Classes="subtle" Text="{Binding SelectedJob.FilesSummary, FallbackValue=''}" />
+      <ListBox Grid.Row="2" ItemsSource="{Binding SelectedJob.Files, FallbackValue={x:Null}}" Height="170">
         <ListBox.ItemTemplate>
-          <DataTemplate x:DataType="vm:ResultItem">
-            <Grid ColumnDefinitions="110,Auto,*" ColumnSpacing="10" ToolTip.Tip="{Binding SourcePath}">
+          <DataTemplate x:DataType="vm:JobFileItem">
+            <!-- Name on the first line; where it goes (later the error or the checksum) on the second -->
+            <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto" ColumnSpacing="10">
               <TextBlock Text="{Binding Status}" FontWeight="SemiBold"
                          Classes.status-failed="{Binding IsFailed}" Classes.status-warning="{Binding IsWarning}"
-                         Classes.status-ok="{Binding !IsProblem}" />
-              <TextBlock Grid.Column="1" Text="{Binding Name}" />
-              <TextBlock Grid.Column="2" Classes="subtle" Text="{Binding Message}" TextTrimming="CharacterEllipsis"
-                         VerticalAlignment="Center" />
+                         Classes.status-ok="{Binding IsOk}" Classes.subtle="{Binding !IsDone}" />
+              <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SourcePath}" />
+              <TextBlock Grid.Row="1" Grid.Column="1" Classes="subtle" Text="{Binding Message}" TextTrimming="PathSegmentEllipsis"
+                         ToolTip.Tip="{Binding Message}" />
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>

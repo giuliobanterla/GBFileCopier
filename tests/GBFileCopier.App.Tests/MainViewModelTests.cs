@@ -125,8 +125,10 @@ public sealed class MainViewModelTests : IDisposable
         Assert.Equal(100, job.ProgressPercent);
         Assert.StartsWith("Copied: 2", job.Summary, StringComparison.Ordinal);
         Assert.Contains("verified: 2", job.Summary, StringComparison.Ordinal);
-        Assert.True(job.ShowAllResults); // no problems: all files are listed
-        Assert.All(job.Results, r => Assert.Equal("Verified", r.Status));
+        Assert.Equal(JobFileFilter.All, job.SelectedFilter.Filter); // no problems: all files are listed
+        Assert.Equal(2, job.Files.Count);
+        Assert.All(job.Files, r => Assert.Equal("Verified", r.Status));
+        Assert.Equal((0, 0L, 2, 0), (job.QueuedCount, job.QueuedBytes, job.DoneCount, job.ProblemCount));
         Assert.True(job.IsFinished);
         Assert.False(viewModel.HasActiveJobs);
         Assert.Empty(viewModel.Sources); // ready for the next job
@@ -144,10 +146,11 @@ public sealed class MainViewModelTests : IDisposable
         var job = Assert.Single(viewModel.Jobs);
         Assert.Equal("Finished with errors", job.StatusText);
         Assert.Equal(1, job.ProblemCount);
-        Assert.Equal("Failed", Assert.Single(job.Results).Status);
+        Assert.Equal(JobFileFilter.Problems, job.SelectedFilter.Filter);
+        Assert.Equal("Failed", Assert.Single(job.Files).Status);
 
-        job.ShowAllResults = true;
-        Assert.Equal(2, job.Results.Count);
+        job.SelectedFilter = job.FilterOptions.First(o => o.Filter == JobFileFilter.All);
+        Assert.Equal(2, job.Files.Count);
     }
 
     [AvaloniaFact]
@@ -244,6 +247,76 @@ public sealed class MainViewModelTests : IDisposable
         Assert.All(viewModel.Jobs, j => Assert.Equal("Done", j.StatusText));
         Assert.True(File.Exists(_temp.Combine("dst2", "b.txt")));
         Assert.False(viewModel.HasActiveJobs);
+    }
+
+    [AvaloniaFact]
+    public async Task RunningJob_ListsTheQueuedFilesAndWhereTheyGo()
+    {
+        _temp.CreateFile("dst/b.txt", text: "old"); // the second file stops on a conflict
+        _ui.ConflictGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var viewModel = CreateViewModel();
+        viewModel.AddSources([_temp.CreateFile("src/a.txt", 3000), _temp.CreateFile("src/b.txt", 2000), _temp.CreateFile("src/c.txt", 1000)]);
+        viewModel.Destination = _temp.Combine("dst");
+        var copy = viewModel.CopyCommand.ExecuteAsync(null);
+        await WaitUntil(() => _ui.ConflictsAsked == 1);
+        await WaitUntil(() => viewModel.Jobs[0].DoneCount == 1);
+        var job = viewModel.Jobs[0];
+
+        Assert.True(job.HasFiles);
+        Assert.Equal(3, job.Files.Count);
+        Assert.Equal(_temp.Combine("dst", "c.txt"), job.Files[2].DestinationPath); // where it goes, before it is copied
+        Assert.Equal("Queued", job.Files[2].Status);
+        Assert.True(job.Files[0].IsOk);
+        Assert.Equal((2, 3000L), (job.QueuedCount, job.QueuedBytes));
+        Assert.StartsWith("Queued: 2 (", job.FilesSummary, StringComparison.Ordinal);
+
+        job.SelectedFilter = job.FilterOptions.First(o => o.Filter == JobFileFilter.Queued);
+        Assert.Equal(["b.txt", "c.txt"], job.Files.Select(f => f.Name));
+
+        _ui.ConflictGate.SetResult();
+        await copy;
+        Assert.Equal((0, 3, 1), (job.QueuedCount, job.DoneCount, job.ProblemCount)); // b skipped (the fake answers Skip)
+        Assert.Equal(JobFileFilter.Problems, job.SelectedFilter.Filter); // at the end, the problems first
+        Assert.Equal("b.txt", Assert.Single(job.Files).Name);
+    }
+
+    [AvaloniaFact]
+    public void ManyFiles_ListAndUpdateQuickly()
+    {
+        // The list side only (the copy itself is measured elsewhere): 20,000 planned files, all finished
+        const int count = 20_000;
+        var request = new CopyRequest { Sources = ["/src"], Destination = "/dst" };
+        using var job = new JobViewModel(request, "/", _ui, new DriveScheduler(), (_, _) => Task.FromResult(new ConflictAnswer(ConflictAction.Skip, false)));
+        var planned = Enumerable.Range(0, count).Select(i => new PlannedFile(CopyItemKind.File, $"/src/f{i}", $"/dst/f{i}", 10)).ToList();
+        var started = System.Diagnostics.Stopwatch.StartNew();
+
+        job.OnPlanned(planned);
+        job.SelectedFilter = job.FilterOptions.First(o => o.Filter == JobFileFilter.Queued); // the slowest: rows leave the list
+        foreach (var file in planned)
+        {
+            job.Apply(new FileCopyResult { SourcePath = file.SourcePath, DestinationPath = file.DestinationPath, Length = 10 });
+        }
+
+        Assert.Equal((0, count), (job.QueuedCount, job.DoneCount));
+        Assert.Empty(job.Files);
+        Assert.True(started.Elapsed < TimeSpan.FromSeconds(20), $"took {started.Elapsed}");
+    }
+
+    [AvaloniaFact]
+    public async Task SameFileTwice_BothRowsFinish()
+    {
+        // A file, and the folder that contains it: two copies of the same source
+        var file = _temp.CreateFile("src/Photos/a.jpg");
+        var viewModel = CreateViewModel();
+        viewModel.AddSources([file, _temp.Combine("src", "Photos")]);
+        viewModel.Destination = _temp.Combine("dst");
+
+        await viewModel.CopyCommand.ExecuteAsync(null);
+
+        var job = Assert.Single(viewModel.Jobs);
+        Assert.Equal((0, 0L, 2), (job.QueuedCount, job.QueuedBytes, job.DoneCount));
+        Assert.All(job.Files, f => Assert.True(f.IsOk));
+        Assert.Equal([_temp.Combine("dst", "a.jpg"), _temp.Combine("dst", "Photos", "a.jpg")], job.Files.Select(f => f.DestinationPath));
     }
 
     [AvaloniaFact]
