@@ -33,6 +33,8 @@ dotnet publish src/GBFileCopier.Cli -c Release   # Native AOT
 - Everything under `src/` must stay Native AOT compatible (`IsAotCompatible`): no unannotated
   reflection, JSON only through source-generated contexts.
 - Package versions live only in `Directory.Packages.props` (central package management).
+- Tests run on Microsoft.Testing.Platform (xunit v3): filter with
+  `dotnet test --project tests/<project> --filter-class "*.ClassName"`; VSTest's `--filter` is not accepted.
 - `dotnet test` does not rebuild the CLI: rebuild `src/GBFileCopier.Cli` before checking it by hand.
 - The App tests write PNG renders to `tests/GBFileCopier.App.Tests/bin/*/net10.0/screenshots/`:
   use them to check the UI instead of scripting the real windows.
@@ -51,8 +53,9 @@ Before opening a PR that touches platform code, interop, paths or AOT-sensitive 
 English and Italian. Interface texts: `src/GBFileCopier.App/Resources/Strings.resx`,
 `Strings.it.resx` and a property in `Strings.cs` (used from XAML as `{x:Static res:Strings.Name}`).
 Error messages: `src/GBFileCopier.Core/Resources/Messages*.resx` + `Messages.cs`. Every new text
-goes in all the files; the tests check that no translation is missing and that `{0}` placeholders
-match. The CLI output stays in English.
+goes in all the files, as described by the `/add-string` skill (`.claude/skills/add-string/`);
+the tests check that no translation is missing and that `{0}` placeholders match. The CLI output
+stays in English.
 
 ## Workflow
 
