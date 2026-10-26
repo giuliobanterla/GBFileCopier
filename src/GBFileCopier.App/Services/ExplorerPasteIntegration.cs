@@ -25,14 +25,26 @@ internal sealed class ExplorerPasteIntegration(Application app, Window window, M
 
     public bool IsEnabled => _hook is not null;
 
-    public void Dispose() => Apply(false);
+    /// <summary>Stops the hook and the icon; the start at sign-in stays as chosen.</summary>
+    public void Dispose()
+    {
+        _hook?.Dispose();
+        _hook = null;
+        HideTrayIcon();
+    }
 
     /// <summary>Switches the whole feature on or off: hook, notification area icon, start at sign-in.</summary>
-    public void Apply(bool enabled)
+    /// <returns>Whether it is on now: false if Windows refused the hook.</returns>
+    public bool Apply(bool enabled)
     {
         if (enabled == IsEnabled)
         {
-            return;
+            if (!enabled && WindowsStartup.Command is not null)
+            {
+                SetStartAtSignIn(false); // left over, for example from a copy that crashed
+            }
+
+            return IsEnabled;
         }
 
         if (enabled)
@@ -45,7 +57,7 @@ internal sealed class ExplorerPasteIntegration(Application app, Window window, M
             catch (InvalidOperationException ex)
             {
                 DiagnosticLog.Write($"Explorer paste: {ex.Message}");
-                return;
+                return false;
             }
 
             ShowTrayIcon();
@@ -59,6 +71,7 @@ internal sealed class ExplorerPasteIntegration(Application app, Window window, M
 
         SetStartAtSignIn(enabled);
         DiagnosticLog.Write($"Explorer paste: {(enabled ? "on" : "off")}");
+        return IsEnabled;
     }
 
     private void Paste(nint explorerWindow)
@@ -75,7 +88,8 @@ internal sealed class ExplorerPasteIntegration(Application app, Window window, M
             DiagnosticLog.Write($"Explorer paste: {ex.Message}");
         }
 
-        if (folder is null || clipboard is null || ExplorerPasteRules.IsSameFolder(folder, clipboard.Paths))
+        // Not a real folder (This PC, a .zip opened as a folder…) or the files' own folder: Explorer's paste
+        if (folder is null || !Directory.Exists(folder) || clipboard is null || ExplorerPasteRules.IsSameFolder(folder, clipboard.Paths))
         {
             DiagnosticLog.Write($"Explorer paste: given back to Explorer (folder={folder ?? "none"}, files={clipboard?.Paths.Count ?? 0})");
             WindowsPasteHook.SendPasteToExplorer(explorerWindow);

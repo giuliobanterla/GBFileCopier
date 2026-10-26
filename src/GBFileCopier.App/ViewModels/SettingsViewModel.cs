@@ -14,18 +14,18 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private readonly ISettingsStore _store;
     private readonly string _initialLanguage;
     private readonly Action<ThemeChoice> _applyTheme;
-    private readonly Action<bool> _applyExplorerPaste;
+    private readonly Func<bool, bool> _applyExplorerPaste;
     private readonly bool _initialized;
 
     /// <param name="store">Where the choices are saved.</param>
     /// <param name="location">Settings file path, shown to the user.</param>
     /// <param name="applyTheme">Switches the theme right away; App.ApplyTheme in the app.</param>
-    /// <param name="applyExplorerPaste">Switches Ctrl+V in Explorer on or off right away; App.ApplyExplorerPaste in the app.</param>
-    public SettingsViewModel(ISettingsStore store, string? location = null, Action<ThemeChoice>? applyTheme = null, Action<bool>? applyExplorerPaste = null)
+    /// <param name="applyExplorerPaste">Switches Ctrl+V in Explorer on or off right away and tells whether it is on; App.ApplyExplorerPaste in the app.</param>
+    public SettingsViewModel(ISettingsStore store, string? location = null, Action<ThemeChoice>? applyTheme = null, Func<bool, bool>? applyExplorerPaste = null)
     {
         _store = store;
         _applyTheme = applyTheme ?? (_ => { });
-        _applyExplorerPaste = applyExplorerPaste ?? (_ => { });
+        _applyExplorerPaste = applyExplorerPaste ?? (on => on);
         var settings = store.Load();
         _initialLanguage = settings.Language;
         SelectedLanguage = Languages.FirstOrDefault(l => l.Code == _initialLanguage) ?? Languages[0];
@@ -90,10 +90,17 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     partial void OnExplorerPasteChanged(bool value)
     {
-        if (_initialized)
+        if (!_initialized)
         {
-            _store.Save(_store.Load() with { ExplorerPaste = value });
-            _applyExplorerPaste(value);
+            return;
+        }
+
+        // If Windows refuses the keyboard hook, the box goes back to off: it never shows what does not work
+        var on = _applyExplorerPaste(value);
+        _store.Save(_store.Load() with { ExplorerPaste = on });
+        if (on != value)
+        {
+            ExplorerPaste = on;
         }
     }
 

@@ -33,19 +33,27 @@ public partial class App : Application
     public static bool IsQuitting { get; private set; }
 
     /// <summary>Switches Ctrl+V in Explorer on or off (Settings), no restart needed.</summary>
-    public static void ApplyExplorerPaste(bool enabled)
-    {
-        if (OperatingSystem.IsWindows() && s_explorerPaste is ExplorerPasteIntegration integration)
-        {
-            integration.Apply(enabled);
-        }
-    }
+    /// <returns>Whether it is on now: false if Windows refused it.</returns>
+    public static bool ApplyExplorerPaste(bool enabled) =>
+        OperatingSystem.IsWindows() && s_explorerPaste is ExplorerPasteIntegration integration && integration.Apply(enabled);
 
-    /// <summary>Exit in the notification area: closes the window for real (running jobs are cancelled first).</summary>
+    private static bool s_windowOpened;
+
+    /// <summary>
+    /// Exit in the notification area: closes the window for real (running jobs are cancelled first);
+    /// the app ends with its last window. A window never shown (started at sign-in) has nothing to close.
+    /// </summary>
     public static void Quit()
     {
         IsQuitting = true;
-        s_window?.Close();
+        if (s_window is { } window && s_windowOpened)
+        {
+            window.Close();
+        }
+        else if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.Shutdown();
+        }
     }
 
     public override void Initialize()
@@ -148,20 +156,20 @@ public partial class App : Application
             viewModel.Updates = updates;
             window.DataContext = viewModel;
             s_window = window;
+            window.Opened += (_, _) => s_windowOpened = true;
 
-            // The app quits when its window is closed, unless Ctrl+V in Explorer keeps it in the background
-            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            window.Closed += (_, _) => desktop.Shutdown();
-            var explorerPaste = OperatingSystem.IsWindows() && SettingsStore.Load().ExplorerPaste;
+            // The app still ends with its last window: a window hidden in the notification area is not closed
+            var background = false;
             if (OperatingSystem.IsWindows())
             {
                 var integration = new ExplorerPasteIntegration(this, window, viewModel, () => BringToFront(window), Quit);
-                integration.Apply(explorerPaste);
                 s_explorerPaste = integration;
+                // Started at sign-in (--background): only the notification area icon, the window opens when needed.
+                // If the hook could not start there is no icon either: then the window shows, as usual.
+                background = integration.Apply(SettingsStore.Load().ExplorerPaste)
+                    && desktop.Args?.Contains(ExternalRequest.BackgroundArgument) == true;
             }
 
-            // Started at sign-in (--background): only the notification area icon, the window opens when needed
-            var background = explorerPaste && desktop.Args?.Contains(ExternalRequest.BackgroundArgument) == true;
             if (!background)
             {
                 desktop.MainWindow = window;

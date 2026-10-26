@@ -6,8 +6,10 @@ namespace GBFileCopier.Platform;
 /// <summary>
 /// Takes over Ctrl+V in Explorer (see <see cref="ExplorerPasteRules"/>) with a low-level keyboard
 /// hook: nothing is loaded into Explorer. The hook only decides, in a few milliseconds, and hands
-/// the Explorer window over; finding its folder and copying happen afterwards. Install it on a
-/// thread with a message loop (the UI thread): Windows calls the hook through that loop.
+/// the Explorer window over; finding its folder and copying happen afterwards. Windows calls a
+/// low-level hook for every key of every program through the message loop of the thread that
+/// installed it, so the hook gets a thread of its own that does nothing else: a busy UI can never
+/// slow down the keyboard, nor make Windows drop the hook.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed unsafe partial class WindowsPasteHook : IDisposable
@@ -17,7 +19,10 @@ public sealed unsafe partial class WindowsPasteHook : IDisposable
 
     private const int WH_KEYBOARD_LL = 13;
     private const int WM_KEYDOWN = 0x0100;
+    private const int WM_KEYUP = 0x0101;
     private const int WM_SYSKEYDOWN = 0x0104;
+    private const int WM_SYSKEYUP = 0x0105;
+    private const uint WM_QUIT = 0x0012;
     private const int VK_SHIFT = 0x10;
     private const int VK_CONTROL = 0x11;
     private const int VK_MENU = 0x12;
@@ -29,15 +34,20 @@ public sealed unsafe partial class WindowsPasteHook : IDisposable
     private const uint KEYEVENTF_KEYUP = 0x2;
 
     private static WindowsPasteHook? s_current;
+
+    // Holding Ctrl+V repeats the key: one paste per press, the repeats are swallowed until V is released
+    private static bool s_swallowingV;
+
     private readonly Action<nint> _onPaste;
-    private nint _hook;
+    private Thread? _thread;
+    private uint _threadId;
 
     private WindowsPasteHook(Action<nint> onPaste) => _onPaste = onPaste;
 
     /// <summary>Starts watching Ctrl+V.</summary>
     /// <param name="onPaste">
-    /// Called on the hook's thread, after the key has been taken, with the Explorer window. It must
-    /// return at once (post the work): the hook is waiting for it.
+    /// Called on the hook's own thread, after the key has been taken, with the Explorer window. It
+    /// must return at once (post the work to the UI thread): the keyboard waits for it.
     /// </param>
     /// <exception cref="InvalidOperationException">A hook is already installed, or Windows refused it.</exception>
     public static WindowsPasteHook Install(Action<nint> onPaste)
@@ -49,27 +59,60 @@ public sealed unsafe partial class WindowsPasteHook : IDisposable
         }
 
         var hook = new WindowsPasteHook(onPaste);
-        hook._hook = SetWindowsHookEx(WH_KEYBOARD_LL, &OnKey, GetModuleHandle(null), 0);
-        if (hook._hook == 0)
+        s_current = hook;
+        using var started = new ManualResetEventSlim();
+        string? error = null;
+        hook._thread = new Thread(() =>
         {
-            throw new InvalidOperationException($"Cannot install the keyboard hook: {Marshal.GetPInvokeErrorMessage(Marshal.GetLastPInvokeError())}");
+            hook._threadId = GetCurrentThreadId();
+            var handle = SetWindowsHookEx(WH_KEYBOARD_LL, &OnKey, GetModuleHandle(null), 0);
+            if (handle == 0)
+            {
+                error = Marshal.GetPInvokeErrorMessage(Marshal.GetLastPInvokeError());
+            }
+
+            started.Set();
+            if (handle == 0)
+            {
+                return;
+            }
+
+            // Windows calls the hook while this loop waits for messages; WM_QUIT ends it
+            Message message;
+            while (GetMessage(&message, 0, 0, 0) > 0)
+            {
+            }
+
+            UnhookWindowsHookEx(handle);
+        })
+        {
+            IsBackground = true,
+            Name = "GBFileCopier keyboard hook",
+        };
+        hook._thread.Start();
+        started.Wait();
+        if (error is not null)
+        {
+            s_current = null;
+            throw new InvalidOperationException($"Cannot install the keyboard hook: {error}");
         }
 
-        s_current = hook;
         return hook;
     }
 
     public void Dispose()
     {
-        if (_hook != 0)
+        if (_thread is { } thread)
         {
-            UnhookWindowsHookEx(_hook);
-            _hook = 0;
+            _ = PostThreadMessage(_threadId, WM_QUIT, 0, 0);
+            thread.Join(TimeSpan.FromSeconds(2));
+            _thread = null;
         }
 
         if (ReferenceEquals(s_current, this))
         {
             s_current = null;
+            s_swallowingV = false;
         }
     }
 
@@ -119,20 +162,32 @@ public sealed unsafe partial class WindowsPasteHook : IDisposable
         try
         {
             var key = (KeyboardHookData*)data;
-            if (code >= 0 && message is WM_KEYDOWN or WM_SYSKEYDOWN && key->VirtualKey == VK_V
-                && key->ExtraInfo != ReplayMarker && s_current is { } hook)
+            if (code >= 0 && key->VirtualKey == VK_V && key->ExtraInfo != ReplayMarker && s_current is { } hook)
             {
-                var window = GetForegroundWindow();
-                if (ExplorerPasteRules.ShouldIntercept(ReadContext(window)))
+                if (message is WM_KEYUP or WM_SYSKEYUP)
                 {
-                    hook._onPaste(window);
-                    return 1; // taken: Explorer does not see this Ctrl+V
+                    s_swallowingV = false;
+                }
+                else if (message is WM_KEYDOWN or WM_SYSKEYDOWN)
+                {
+                    if (s_swallowingV)
+                    {
+                        return 1; // a repeat of a Ctrl+V already taken
+                    }
+
+                    var window = GetForegroundWindow();
+                    if (ExplorerPasteRules.ShouldIntercept(ReadContext(window)))
+                    {
+                        s_swallowingV = true;
+                        hook._onPaste(window);
+                        return 1; // taken: Explorer does not see this Ctrl+V
+                    }
                 }
             }
         }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
+        catch
         {
-            // Never let an exception leave a hook: the key goes to Explorer as usual
+            // Nothing may leave a hook: the key goes on as usual
         }
 
         return CallNextHookEx(0, code, message, data);
@@ -174,6 +229,19 @@ public sealed unsafe partial class WindowsPasteHook : IDisposable
         public uint Flags;
         public uint Time;
         public nuint ExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Message
+    {
+        public nint Window;
+        public uint Id;
+        public nuint WParam;
+        public nint LParam;
+        public uint Time;
+        public int X;
+        public int Y;
+        public uint Private;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -260,4 +328,14 @@ public sealed unsafe partial class WindowsPasteHook : IDisposable
 
     [LibraryImport("user32.dll")]
     private static partial uint SendInput(uint count, Input* inputs, int size);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetMessageW")]
+    private static partial int GetMessage(Message* message, nint window, uint first, uint last);
+
+    [LibraryImport("user32.dll", EntryPoint = "PostThreadMessageW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool PostThreadMessage(uint thread, uint message, nuint wParam, nint lParam);
+
+    [LibraryImport("kernel32.dll")]
+    private static partial uint GetCurrentThreadId();
 }

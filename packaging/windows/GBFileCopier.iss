@@ -67,6 +67,8 @@ Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierPast
 Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierMove"; ValueType: string; ValueName: "MUIVerb"; ValueData: "{cm:MoveHere}"; Tasks: contextmenu; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierMove"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\GBFileCopier.exe"",0"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GBFileCopierMove\command"; ValueType: string; ValueName: ""; ValueData: """{app}\GBFileCopier.exe"" --paste ""%V"" --move"; Tasks: contextmenu
+; Written by the app itself (Ctrl+V in Explorer starts it at sign-in): removed with it
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "GBFileCopier"; Flags: uninsdeletevalue dontcreatekey
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb"

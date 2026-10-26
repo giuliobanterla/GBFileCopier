@@ -108,7 +108,11 @@ public sealed class SettingsTests : IDisposable
     {
         var store = new FakeSettingsStore();
         bool? applied = null;
-        var settings = new SettingsViewModel(store, applyExplorerPaste: on => applied = on);
+        var settings = new SettingsViewModel(store, applyExplorerPaste: on =>
+        {
+            applied = on;
+            return on;
+        });
         Assert.False(settings.ExplorerPaste); // off until the user turns it on
         Assert.Equal(OperatingSystem.IsWindows(), settings.IsExplorerPasteAvailable);
 
@@ -116,6 +120,18 @@ public sealed class SettingsTests : IDisposable
 
         Assert.True(store.Load().ExplorerPaste);
         Assert.True(applied); // right away, no restart
+    }
+
+    [Fact]
+    public void SettingsViewModel_ExplorerPasteRefused_GoesBackToOff()
+    {
+        var store = new FakeSettingsStore();
+        var settings = new SettingsViewModel(store, applyExplorerPaste: _ => false); // Windows refused the hook
+
+        settings.ExplorerPaste = true;
+
+        Assert.False(settings.ExplorerPaste);
+        Assert.False(store.Load().ExplorerPaste);
     }
 
     [Fact]
