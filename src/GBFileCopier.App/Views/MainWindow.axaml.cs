@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     public async void ShowSettings()
     {
         var location = SettingsStore is SettingsStore file ? file.FilePath : null;
-        await new SettingsWindow { DataContext = new SettingsViewModel(SettingsStore, location, App.ApplyTheme) }.ShowDialog(this);
+        await new SettingsWindow { DataContext = new SettingsViewModel(SettingsStore, location, App.ApplyTheme, App.ApplyExplorerPaste) }.ShowDialog(this);
     }
 
     public async void ShowAbout() => await new AboutWindow().ShowDialog(this);
@@ -138,6 +138,16 @@ public partial class MainWindow : Window
     protected override async void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
+        // Ctrl+V in Explorer needs the app running: closing the window only hides it (Exit in the
+        // notification area quits). Windows shutting down or an installer closing the app still quit.
+        if (App.RunsInBackground && !App.IsQuitting && e.CloseReason == WindowCloseReason.WindowClosing)
+        {
+            e.Cancel = true;
+            ViewModel?.SaveSettings(Width, Height);
+            Hide();
+            return;
+        }
+
         if (!_closingAfterCancel)
         {
             ViewModel?.SaveSettings(Width, Height);

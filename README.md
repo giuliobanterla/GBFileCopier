@@ -116,6 +116,19 @@ same list. As on macOS, the window is only filled in: the copy starts when you p
 
 The same works from a command prompt: `GBFileCopier --add <paths>`, `GBFileCopier --paste [folder] [--move]`.
 
+### Ctrl+V in Explorer (Windows)
+
+With *Use GBFileCopier for Ctrl+V in Explorer* in Settings, files copied (Ctrl+C) or cut (Ctrl+X) in
+Explorer and pasted with **Ctrl+V** in an Explorer window are copied or moved by GBFileCopier, at
+once, with the options of the main window. GBFileCopier then keeps running in the notification area
+(closing its window hides it; *Exit* there quits) and starts when you sign in to Windows.
+
+It works with a keyboard hook in GBFileCopier itself: nothing is loaded into Explorer. Only plain
+Ctrl+V in Explorer's list of files with files on the clipboard is taken; text, renaming, the address
+and search boxes are untouched. When GBFileCopier cannot paste there — a virtual folder such as
+*This PC*, or the folder the files come from (where Explorer makes "- Copy" files) — Ctrl+V goes
+back to Explorer. Dragging files with the mouse is still done by Explorer.
+
 ### Languages
 
 The app is available in **English** and **Italian**. It follows the system language (on macOS the

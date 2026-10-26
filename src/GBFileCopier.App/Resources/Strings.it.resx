@@ -412,6 +412,12 @@
   <data name="SettingsFlushOnNetwork" xml:space="preserve">
     <value>Forza su disco ogni file anche sulle condivisioni di rete (più sicuro se il NAS perde la corrente, ma molto più lento con tanti file piccoli)</value>
   </data>
+  <data name="SettingsExplorerPaste" xml:space="preserve">
+    <value>Usa GBFileCopier per Ctrl+V in Esplora risorse (resta attivo nell'area di notifica e parte all'accesso a Windows)</value>
+  </data>
+  <data name="TrayOpen" xml:space="preserve">
+    <value>Apri GBFileCopier</value>
+  </data>
   <data name="SettingsCheckForUpdates" xml:space="preserve">
     <value>Controlla automaticamente gli aggiornamenti (una volta al giorno, su GitHub)</value>
   </data>

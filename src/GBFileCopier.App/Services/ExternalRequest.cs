@@ -13,6 +13,9 @@ public sealed record ExternalRequest(IReadOnlyList<string> Sources, string? Dest
 {
     public const string Scheme = "gbfilecopier";
 
+    /// <summary>Start without showing the window (at sign-in, for Ctrl+V in Explorer); not a request.</summary>
+    public const string BackgroundArgument = "--background";
+
     /// <summary>
     /// gbfilecopier://add?source=/a&amp;source=/b and gbfilecopier://paste?destination=/folder&amp;move=1.
     /// Returns null for anything else, and ignores paths that are not absolute.
@@ -66,6 +69,8 @@ public sealed record ExternalRequest(IReadOnlyList<string> Sources, string? Dest
                     break;
                 case "--move":
                     move = true;
+                    break;
+                case BackgroundArgument:
                     break;
                 case "":
                     break;

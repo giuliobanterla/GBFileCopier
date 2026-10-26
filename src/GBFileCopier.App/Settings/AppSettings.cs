@@ -32,6 +32,9 @@ public sealed record AppSettings
 
     public double WindowHeight { get; init; }
 
+    /// <summary>Windows: Ctrl+V in Explorer copies with GBFileCopier, which then keeps running in the background.</summary>
+    public bool ExplorerPaste { get; init; }
+
     /// <summary>Force every file to disk also on network shares (much slower with many small files).</summary>
     public bool FlushOnNetworkShares { get; init; }
 

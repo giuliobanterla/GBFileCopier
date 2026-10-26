@@ -29,6 +29,10 @@
       </ComboBox>
     </Grid>
 
+    <CheckBox IsChecked="{Binding ExplorerPaste}" IsVisible="{Binding IsExplorerPasteAvailable}">
+      <TextBlock Text="{x:Static res:Strings.SettingsExplorerPaste}" TextWrapping="Wrap" />
+    </CheckBox>
+
     <CheckBox IsChecked="{Binding FlushOnNetworkShares}">
       <TextBlock Text="{x:Static res:Strings.SettingsFlushOnNetwork}" TextWrapping="Wrap" />
     </CheckBox>

@@ -22,6 +22,32 @@ public partial class App : Application
     /// <summary>Set by Program on Windows when this is the first running instance.</summary>
     public static SingleInstance? SingleInstance { get; set; }
 
+    private static Window? s_window;
+    private static object? s_explorerPaste; // ExplorerPasteIntegration, Windows only
+
+    /// <summary>Ctrl+V in Explorer is on: the app keeps running when its window is closed.</summary>
+    public static bool RunsInBackground =>
+        OperatingSystem.IsWindows() && s_explorerPaste is ExplorerPasteIntegration { IsEnabled: true };
+
+    /// <summary>Exit was chosen: closing the window quits instead of hiding it.</summary>
+    public static bool IsQuitting { get; private set; }
+
+    /// <summary>Switches Ctrl+V in Explorer on or off (Settings), no restart needed.</summary>
+    public static void ApplyExplorerPaste(bool enabled)
+    {
+        if (OperatingSystem.IsWindows() && s_explorerPaste is ExplorerPasteIntegration integration)
+        {
+            integration.Apply(enabled);
+        }
+    }
+
+    /// <summary>Exit in the notification area: closes the window for real (running jobs are cancelled first).</summary>
+    public static void Quit()
+    {
+        IsQuitting = true;
+        s_window?.Close();
+    }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -55,6 +81,11 @@ public partial class App : Application
     private static void OnForwarded(IReadOnlyList<string> arguments, string workingDirectory, Window window, MainViewModel viewModel)
     {
         DiagnosticLog.Write($"Received: {string.Join(' ', arguments)}");
+        if (arguments.Contains(ExternalRequest.BackgroundArgument))
+        {
+            return; // started again at sign-in while already running: stay in the background
+        }
+
         if (ExternalRequest.FromArguments(arguments, workingDirectory) is { } request)
         {
             viewModel.Apply(request);
@@ -66,6 +97,11 @@ public partial class App : Application
 
     private static void BringToFront(Window window)
     {
+        if (!window.IsVisible)
+        {
+            window.Show(); // hidden in the notification area, or started in the background
+        }
+
         if (window.WindowState == WindowState.Minimized)
         {
             window.WindowState = WindowState.Normal;
@@ -111,7 +147,25 @@ public partial class App : Application
                 () => desktop.Shutdown(), uri => _ = window.Launcher.LaunchUriAsync(uri));
             viewModel.Updates = updates;
             window.DataContext = viewModel;
-            desktop.MainWindow = window;
+            s_window = window;
+
+            // The app quits when its window is closed, unless Ctrl+V in Explorer keeps it in the background
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            window.Closed += (_, _) => desktop.Shutdown();
+            var explorerPaste = OperatingSystem.IsWindows() && SettingsStore.Load().ExplorerPaste;
+            if (OperatingSystem.IsWindows())
+            {
+                var integration = new ExplorerPasteIntegration(this, window, viewModel, () => BringToFront(window), Quit);
+                integration.Apply(explorerPaste);
+                s_explorerPaste = integration;
+            }
+
+            // Started at sign-in (--background): only the notification area icon, the window opens when needed
+            var background = explorerPaste && desktop.Args?.Contains(ExternalRequest.BackgroundArgument) == true;
+            if (!background)
+            {
+                desktop.MainWindow = window;
+            }
 
             // Updates: the first check a few seconds after the start, then the timer checks once a day
             DispatcherTimer.RunOnce(() => _ = updates.StartAsync(), TimeSpan.FromSeconds(5));

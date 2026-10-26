@@ -303,6 +303,24 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task PasteInto_CopiesAtOnceAndLeavesTheListAlone()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.AddSources([_temp.CreateFile("being-prepared.txt")]);
+        var cut = _temp.CreateFile("src/a.txt");
+        _ui.Clipboard = new ClipboardFiles([cut], IsCut: true); // as Explorer leaves it after Ctrl+X
+
+        await viewModel.PasteInto(_temp.Combine("dst"), _ui.Clipboard);
+
+        var job = Assert.Single(viewModel.Jobs);
+        Assert.Equal(CopyMode.Move, job.Mode); // cut in Explorer: moved
+        Assert.True(File.Exists(_temp.Combine("dst", "a.txt")));
+        Assert.False(File.Exists(cut));
+        Assert.Single(viewModel.Sources); // what the user was preparing stays
+        Assert.True(_ui.ClipboardCleared); // like Explorer after a cut and paste
+    }
+
+    [AvaloniaFact]
     public async Task SameFileTwice_BothRowsFinish()
     {
         // A file, and the folder that contains it: two copies of the same source
