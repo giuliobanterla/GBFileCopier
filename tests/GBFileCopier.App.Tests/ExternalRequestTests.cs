@@ -48,6 +48,13 @@ public sealed class ExternalRequestTests : IDisposable
         Assert.Null(ExternalRequest.Parse(new Uri(uri)));
     }
 
+    [Fact]
+    public void BackgroundStart_IsNotARequest()
+    {
+        Assert.Null(ExternalRequest.FromArguments(["--background"], _temp.Path));
+        Assert.Single(ExternalRequest.FromArguments(["--background", "a.txt"], _temp.Path)!.Sources);
+    }
+
     [AvaloniaFact]
     public void Apply_FillsTheWindowWithoutStartingTheCopy()
     {

@@ -7,6 +7,7 @@ using GBFileCopier.App.Services;
 using GBFileCopier.App.Settings;
 using GBFileCopier.Core;
 using GBFileCopier.Core.Copying;
+using GBFileCopier.Platform.Clipboard;
 
 namespace GBFileCopier.App.ViewModels;
 
@@ -264,10 +265,34 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     private Task AddJob(CopyMode mode)
     {
-        var destination = Destination.Trim();
+        SaveSettings();
+        var start = StartJob([.. Sources.Select(s => s.Path)], Destination.Trim(), mode, mode == CopyMode.Move ? _cutPaths : null);
+        Sources.Clear();
+        PreferMove = false;
+        _cutPaths = null;
+        StatusText = Strings.JobAdded;
+        return start;
+    }
+
+    /// <summary>
+    /// Ctrl+V in Explorer, taken over by GBFileCopier: copies (or moves, after a cut) the files on the
+    /// clipboard into <paramref name="folder"/> at once, with the current options. The files being
+    /// prepared in the window are left alone.
+    /// </summary>
+    /// <returns>Completes when the job is over.</returns>
+    public Task PasteInto(string folder, ClipboardFiles clipboard)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(folder);
+        ArgumentNullException.ThrowIfNull(clipboard);
+        var mode = clipboard.IsCut ? CopyMode.Move : CopyMode.Copy;
+        return StartJob(clipboard.Paths, folder, mode, clipboard.IsCut ? clipboard.Paths : null);
+    }
+
+    private Task StartJob(IReadOnlyList<string> sources, string destination, CopyMode mode, IReadOnlyList<string>? cutPaths)
+    {
         var request = new CopyRequest
         {
-            Sources = [.. Sources.Select(s => s.Path)],
+            Sources = sources,
             Destination = destination,
             Mode = mode,
             Options = new CopyOptions
@@ -279,9 +304,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             },
         };
 
-        SaveSettings();
-        var job = new JobViewModel(request, DestinationDrive.KeyFor(destination), _ui, _scheduler, AskConflictAsync,
-            mode == CopyMode.Move ? _cutPaths : null);
+        var job = new JobViewModel(request, DestinationDrive.KeyFor(destination), _ui, _scheduler, AskConflictAsync, cutPaths);
         job.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(JobViewModel.IsActive) or nameof(JobViewModel.IsFinished))
@@ -291,11 +314,6 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         };
         Jobs.Add(job);
         SelectedJob = job;
-
-        Sources.Clear();
-        PreferMove = false;
-        _cutPaths = null;
-        StatusText = Strings.JobAdded;
         return job.Start();
     }
 

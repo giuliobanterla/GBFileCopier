@@ -412,6 +412,12 @@
   <data name="SettingsFlushOnNetwork" xml:space="preserve">
     <value>Force every file to disk also on network shares (safer if the NAS loses power, but much slower with many small files)</value>
   </data>
+  <data name="SettingsExplorerPaste" xml:space="preserve">
+    <value>Use GBFileCopier for Ctrl+V in Explorer (it keeps running in the notification area and starts when you sign in to Windows)</value>
+  </data>
+  <data name="TrayOpen" xml:space="preserve">
+    <value>Open GBFileCopier</value>
+  </data>
   <data name="SettingsCheckForUpdates" xml:space="preserve">
     <value>Check for updates automatically (once a day, on GitHub)</value>
   </data>

@@ -423,6 +423,12 @@ public static class Strings
     /// <summary>Force every file to disk also on network shares (safer if the NAS loses power, but much slower with many small files)</summary>
     public static string SettingsFlushOnNetwork => Get();
 
+    /// <summary>Use GBFileCopier for Ctrl+V in Explorer (it keeps running in the notification area and starts when you sign in to Windows)</summary>
+    public static string SettingsExplorerPaste => Get();
+
+    /// <summary>Open GBFileCopier</summary>
+    public static string TrayOpen => Get();
+
     /// <summary>Check for updates automatically (once a day, on GitHub)</summary>
     public static string SettingsCheckForUpdates => Get();
 
