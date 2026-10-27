@@ -336,6 +336,12 @@ public static class Strings
     /// <summary>Version {0}</summary>
     public static string AboutVersion => Get();
 
+    /// <summary>GBFileCopier is free. If it is useful to you, you can support its development with a donation.</summary>
+    public static string AboutDonateText => Get();
+
+    /// <summary>Donate with PayPal</summary>
+    public static string AboutDonate => Get();
+
     /// <summary>Free software released under the GNU General Public License, version 3 or later.</summary>
     public static string AboutLicense => Get();
 
