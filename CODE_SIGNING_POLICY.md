@@ -38,5 +38,5 @@ asks the first time (the choice can be changed in Settings), or chooses *Check f
 reads the latest release from the GitHub API (`api.github.com`), once a day at most for the automatic
 checks, and downloads a new version from the project's GitHub releases only when the user clicks
 *Install and restart*. Like any web request, these reveal the computer's IP address and the app
-version to GitHub; nothing else is sent. It opens the project page on GitHub only when the user clicks
-a link to it.
+version to GitHub; nothing else is sent. It opens the project page on GitHub, or the donation page on
+PayPal, only when the user clicks a link to it.

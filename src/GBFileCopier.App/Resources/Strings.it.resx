@@ -325,6 +325,12 @@
   <data name="AboutVersion" xml:space="preserve">
     <value>Versione {0}</value>
   </data>
+  <data name="AboutDonateText" xml:space="preserve">
+    <value>GBFileCopier è gratuito. Se ti è utile, puoi sostenerne lo sviluppo con una donazione.</value>
+  </data>
+  <data name="AboutDonate" xml:space="preserve">
+    <value>Dona con PayPal</value>
+  </data>
   <data name="AboutLicense" xml:space="preserve">
     <value>Software libero distribuito con licenza GNU General Public License, versione 3 o successiva.</value>
   </data>
