@@ -49,6 +49,9 @@
   <data name="MetadataAttributes" xml:space="preserve">
     <value>attributi</value>
   </data>
+  <data name="FilesNotFlushed" xml:space="preserve">
+    <value>Le copie su {0} potrebbero non essere ancora sul disco: {1}</value>
+  </data>
   <data name="CannotFlushToDisk" xml:space="preserve">
     <value>Impossibile scrivere il file su disco</value>
   </data>

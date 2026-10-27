@@ -193,6 +193,11 @@ static void PrintSummary(ConsoleUi ui, CopyJobResult result)
         ui.WriteLine($"WARNING {file.DestinationPath}: {file.Warning}");
     }
 
+    if (result.Warning is not null)
+    {
+        ui.WriteLine($"WARNING {result.Warning}");
+    }
+
     var verb = result.Mode == CopyMode.Move ? "moved" : "copied";
     var verified = result.Files.Count(f => f.Verified);
     var renamed = result.Files.Count(f => f.Renamed);

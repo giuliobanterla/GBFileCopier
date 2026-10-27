@@ -67,6 +67,9 @@ public sealed record CopyJobResult
     /// <summary>Bytes written to the destination by successful copies.</summary>
     public long CopiedBytes { get; init; }
 
+    /// <summary>A problem with the whole job rather than one file: the final flush to disk failed.</summary>
+    public string? Warning { get; init; }
+
     public int SucceededCount => Files.Count(f => f.Status == FileCopyStatus.Succeeded);
 
     public int SkippedCount => Files.Count(f => f.Status == FileCopyStatus.Skipped);

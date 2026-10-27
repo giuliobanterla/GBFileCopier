@@ -36,7 +36,9 @@ public sealed class PlatformFileSystemTests : IDisposable
     [Fact]
     public void FlushToDisk_ThroughAReadOnlyHandle_Succeeds()
     {
-        // The end of a job flushes the drive through a file opened only for reading
+        // The end of a job flushes the drive through a file opened only for reading. macOS only: that is
+        // where it happens (Windows has no barrier, and FlushFileBuffers needs a handle open for writing)
+        Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS only");
         var path = _temp.CreateFile("written.bin", 10_000);
         using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
 

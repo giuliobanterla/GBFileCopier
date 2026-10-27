@@ -19,6 +19,8 @@ public sealed class NetworkFlushTests : IDisposable
 
         public bool HasBarrier { get; init; }
 
+        public bool FlushFails { get; init; }
+
         public bool TryOrderWrites(SafeFileHandle handle)
         {
             if (!HasBarrier)
@@ -37,6 +39,11 @@ public sealed class NetworkFlushTests : IDisposable
         public void FlushToDisk(SafeFileHandle handle)
         {
             Flushes++;
+            if (FlushFails)
+            {
+                throw new IOException("The drive did not answer");
+            }
+
             ManagedFileSystemPlatform.Instance.FlushToDisk(handle);
         }
 
@@ -105,6 +112,32 @@ public sealed class NetworkFlushTests : IDisposable
         Assert.Equal(3, platform.Barriers);
         Assert.Equal(1, flushes);
         Assert.All(["a.jpg", "b.jpg", "c.jpg"], name => Assert.True(File.Exists(_temp.Combine("dst", name))));
+    }
+
+    [Fact]
+    public async Task FinalFlushFailing_WarnsOnTheJob()
+    {
+        var platform = new CountingPlatform { HasBarrier = true, FlushFails = true };
+        var request = new CopyRequest { Sources = [_temp.CreateFile("src/a.jpg")], Destination = _temp.Combine("dst") };
+
+        var result = await new CopyJob(request, platform, destinationOnNetwork: false).RunAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, result.SucceededCount); // the copy itself is complete
+        Assert.Contains("may not be on the disk yet", result.Warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ResolveLinks_FollowsALinkedFolder()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "symbolic links need extra rights on Windows");
+        var real = _temp.Combine("other-disk", "Photos");
+        Directory.CreateDirectory(real);
+        Directory.CreateSymbolicLink(_temp.Combine("Photos"), real);
+
+        var resolved = CopyJob.ResolveLinks(_temp.Combine("Photos", "2026"));
+
+        // Through the link to the real folder (the temporary folder may itself be under a link, /var → /private/var)
+        Assert.EndsWith(Path.Combine("other-disk", "Photos", "2026"), resolved, StringComparison.Ordinal);
     }
 
     [Fact]

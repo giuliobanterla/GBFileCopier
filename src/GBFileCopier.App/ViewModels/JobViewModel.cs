@@ -324,7 +324,8 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         AddPart(result.SkippedCount, Strings.SummarySkipped);
         AddPart(result.FailedCount, Strings.SummaryFailed);
         AddPart(result.CancelledCount, Strings.SummaryNotProcessed);
-        Summary = string.Join(", ", parts) + "  ·  " + FormatDuration(result.Elapsed);
+        Summary = string.Join(", ", parts) + "  ·  " + FormatDuration(result.Elapsed)
+            + (result.Warning is null ? string.Empty : "  ·  " + result.Warning);
 
         StatusText = result.WasCancelled ? Strings.Cancelled
             : result.FailedCount > 0 ? Strings.FinishedWithErrors

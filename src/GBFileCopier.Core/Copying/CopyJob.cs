@@ -1,6 +1,7 @@
 using System.Globalization;
 using GBFileCopier.Core.Hashing;
 using GBFileCopier.Core.Resources;
+using Microsoft.Win32.SafeHandles;
 
 namespace GBFileCopier.Core.Copying;
 
@@ -18,8 +19,11 @@ public sealed class CopyJob
     private readonly IFileSystemPlatform _platform;
     private readonly CopyOptions _pipelineOptions;
 
-    // Files written with only a write barrier, newest last: one of them is flushed at the end of the job
-    private readonly List<string> _awaitingFlush = [];
+    // Per drive, the newest files written with only a write barrier: one per drive is flushed at the end.
+    // The destination tree can reach other drives through links or mount points: they are flushed too.
+    private readonly Dictionary<string, List<string>> _awaitingFlush = new(DestinationDrive.KeyComparer);
+    private readonly Dictionary<string, string> _driveOfFolder = new(DestinationDrive.KeyComparer);
+    private string? _flushWarning;
     private int _started;
 
     /// <param name="request">What to copy and how.</param>
@@ -132,6 +136,8 @@ public sealed class CopyJob
         CreateDirectories(plan, Add);
 
         var cancelled = false;
+        try
+        {
         foreach (var item in plan.Files)
         {
             if (cancelled)
@@ -158,30 +164,99 @@ public sealed class CopyJob
         {
             FinishDirectories(plan);
         }
+        }
+        finally
+        {
+            // Also when something fails on the way: what was copied is forced to disk
+            FlushAwaitingFiles();
+        }
 
-        FlushAwaitingFiles();
         tracker.Finish();
         return CreateResult(results, tracker.Elapsed, cancelled);
     }
 
-    /// <summary>
-    /// The end of the job, also when cancelled: one full flush makes the drive write its whole cache,
-    /// so every file written with only a barrier is on permanent storage before the job reports.
-    /// Through the newest of those files that can still be opened (the user may delete some meanwhile).
-    /// </summary>
-    private void FlushAwaitingFiles()
+    /// <summary>Keeps the target among the newest few of its drive, the drive found through any links.</summary>
+    private void RememberForFlush(string target)
     {
-        for (var index = _awaitingFlush.Count - 1; index >= 0; index--)
+        var folder = Path.GetDirectoryName(target)!;
+        if (!_driveOfFolder.TryGetValue(folder, out var drive))
         {
+            drive = DestinationDrive.KeyFor(ResolveLinks(folder));
+            _driveOfFolder[folder] = drive;
+        }
+
+        if (!_awaitingFlush.TryGetValue(drive, out var files))
+        {
+            _awaitingFlush[drive] = files = [];
+        }
+
+        files.Add(target);
+        if (files.Count > 4)
+        {
+            files.RemoveAt(0); // older ones are only a fallback if the newest are deleted meanwhile
+        }
+    }
+
+    /// <summary>The path with every symbolic link along it followed: where the files really go.</summary>
+    internal static string ResolveLinks(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(full) ?? string.Empty;
+        var resolved = root;
+        foreach (var part in full[root.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            resolved = Path.Combine(resolved, part);
             try
             {
-                using var handle = File.OpenHandle(_awaitingFlush[index], FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                _platform.FlushToDisk(handle);
-                break;
+                if (new DirectoryInfo(resolved) is { LinkTarget: not null } link && link.ResolveLinkTarget(returnFinalTarget: true) is { } target)
+                {
+                    resolved = target.FullName;
+                }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // Try an older one
+                // Keep the path as it is
+            }
+        }
+
+        return resolved;
+    }
+
+    /// <summary>
+    /// The end of the job, also when cancelled or failed: one full flush per drive makes it write its
+    /// whole cache, so the files written with only a barrier are on permanent storage before the job
+    /// reports. Through the newest file of that drive that can still be opened; if the flush itself
+    /// fails, the job gets a warning.
+    /// </summary>
+    private void FlushAwaitingFiles()
+    {
+        foreach (var (drive, files) in _awaitingFlush)
+        {
+            for (var index = files.Count - 1; index >= 0; index--)
+            {
+                SafeFileHandle handle;
+                try
+                {
+                    handle = File.OpenHandle(files[index], FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    continue; // deleted or moved meanwhile: an older one
+                }
+
+                using (handle)
+                {
+                    try
+                    {
+                        _platform.FlushToDisk(handle);
+                    }
+                    catch (IOException ex)
+                    {
+                        _flushWarning = string.Format(CultureInfo.CurrentCulture, Messages.FilesNotFlushed, drive, ex.Message);
+                    }
+                }
+
+                break;
             }
         }
 
@@ -196,6 +271,7 @@ public sealed class CopyJob
         Elapsed = elapsed,
         WasCancelled = wasCancelled,
         CopiedBytes = results.Where(r => r.Status == FileCopyStatus.Succeeded).Sum(r => r.Length),
+        Warning = _flushWarning,
     };
 
     private static void CreateDirectories(CopyPlan plan, Action<FileCopyResult> add)
@@ -410,7 +486,7 @@ public sealed class CopyJob
             temp = null;
             if (onlyOrdered)
             {
-                _awaitingFlush.Add(target);
+                RememberForFlush(target);
             }
 
             var warning = ApplyMetadata(target, metadata);

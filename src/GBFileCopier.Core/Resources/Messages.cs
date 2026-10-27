@@ -60,6 +60,9 @@ public static class Messages
     /// <summary>attributes</summary>
     public static string MetadataAttributes => Get();
 
+    /// <summary>The copies on {0} may not be on the disk yet: {1}</summary>
+    public static string FilesNotFlushed => Get();
+
     /// <summary>Cannot flush the file to disk</summary>
     public static string CannotFlushToDisk => Get();
 
