@@ -12,6 +12,7 @@ internal sealed partial class MacFileSystem : IFileSystemPlatform
 {
     private const int F_NOCACHE = 48;
     private const int F_FULLFSYNC = 51;
+    private const int F_BARRIERFSYNC = 85;
     private const uint RENAME_EXCL = 0x4;
     private const int EXDEV = 18;
     private const int PROT_READ = 0x1;
@@ -50,6 +51,10 @@ internal sealed partial class MacFileSystem : IFileSystemPlatform
             throw NewIOException(Messages.CannotFlushToDisk);
         }
     }
+
+    // F_BARRIERFSYNC: the data before the barrier is written before anything after it (APFS, HFS+);
+    // fails on file systems without barriers (SMB, exFAT…), where the caller flushes instead
+    public bool TryOrderWrites(SafeFileHandle handle) => Fcntl(handle, F_BARRIERFSYNC, 0) == 0;
 
     public bool TryMoveWithinVolume(string sourcePath, string destinationPath, bool overwrite)
     {

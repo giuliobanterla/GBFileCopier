@@ -17,6 +17,9 @@ public sealed class CopyJob
     private readonly PauseController _pause = new();
     private readonly IFileSystemPlatform _platform;
     private readonly CopyOptions _pipelineOptions;
+
+    // Files written with only a write barrier, newest last: one of them is flushed at the end of the job
+    private readonly List<string> _awaitingFlush = [];
     private int _started;
 
     /// <param name="request">What to copy and how.</param>
@@ -36,7 +39,13 @@ public sealed class CopyJob
         _platform = platform ?? ManagedFileSystemPlatform.Instance;
         var onNetwork = destinationOnNetwork ?? DestinationDrive.IsNetwork(request.Destination);
         FlushesEachFile = request.Options.FlushToDisk && (request.Options.FlushOnNetworkShares || !onNetwork);
-        _pipelineOptions = request.Options with { FlushToDisk = FlushesEachFile };
+        // Copies: a barrier per file and one flush at the end. Moves across volumes keep a full flush per
+        // file: the source is deleted right after, on another disk that the barrier does not order.
+        _pipelineOptions = request.Options with
+        {
+            FlushToDisk = FlushesEachFile,
+            BarrierThenFinalFlush = request.Mode == CopyMode.Copy,
+        };
     }
 
     public CopyRequest Request { get; }
@@ -150,8 +159,33 @@ public sealed class CopyJob
             FinishDirectories(plan);
         }
 
+        FlushAwaitingFiles();
         tracker.Finish();
         return CreateResult(results, tracker.Elapsed, cancelled);
+    }
+
+    /// <summary>
+    /// The end of the job, also when cancelled: one full flush makes the drive write its whole cache,
+    /// so every file written with only a barrier is on permanent storage before the job reports.
+    /// Through the newest of those files that can still be opened (the user may delete some meanwhile).
+    /// </summary>
+    private void FlushAwaitingFiles()
+    {
+        for (var index = _awaitingFlush.Count - 1; index >= 0; index--)
+        {
+            try
+            {
+                using var handle = File.OpenHandle(_awaitingFlush[index], FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                _platform.FlushToDisk(handle);
+                break;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Try an older one
+            }
+        }
+
+        _awaitingFlush.Clear();
     }
 
     private CopyJobResult CreateResult(List<FileCopyResult> results, TimeSpan elapsed, bool wasCancelled) => new()
@@ -344,7 +378,7 @@ public sealed class CopyJob
             var source = new FileInfo(item.SourcePath);
             var metadata = SourceMetadata.Read(source);
 
-            var (bytes, hash) = await FilePipeline.CopyAsync(
+            var (bytes, hash, onlyOrdered) = await FilePipeline.CopyAsync(
                 item.SourcePath, temp, metadata.Length, _pipelineOptions, _platform, _pause, onBytes, cancellationToken);
 
             source.Refresh();
@@ -374,6 +408,10 @@ public sealed class CopyJob
 
             File.Move(temp, target, overwrite);
             temp = null;
+            if (onlyOrdered)
+            {
+                _awaitingFlush.Add(target);
+            }
 
             var warning = ApplyMetadata(target, metadata);
             return (hash is null ? null : StreamingHasher.ToHex(hash), verified, warning);

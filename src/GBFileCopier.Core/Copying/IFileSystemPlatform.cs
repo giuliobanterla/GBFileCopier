@@ -23,6 +23,14 @@ public interface IFileSystemPlatform
     void FlushToDisk(SafeFileHandle handle);
 
     /// <summary>
+    /// A write barrier: the data written through the handle reaches the disk before anything written
+    /// after it (the rename of the finished file, for example), without waiting for the drive to empty
+    /// its cache — about 15 times cheaper than <see cref="FlushToDisk"/> per file on a Mac SSD.
+    /// </summary>
+    /// <returns>False where the platform or file system has no such barrier: the caller then flushes.</returns>
+    bool TryOrderWrites(SafeFileHandle handle) => false;
+
+    /// <summary>
     /// Moves a file by renaming it, which is instant, when source and destination are on the
     /// same volume. Returns false if they are not: the caller then copies and deletes.
     /// </summary>
