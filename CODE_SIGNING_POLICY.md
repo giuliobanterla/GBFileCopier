@@ -1,21 +1,21 @@
 # Code signing policy
 
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
-
 ## What is signed
 
-The Windows release files of GBFileCopier: `GBFileCopier.exe` (desktop app), `gbcopy.exe` (command
-line tool) and the installer `GBFileCopier-<version>-windows-x64-setup.exe`. Libraries made by others
-and shipped unchanged (SkiaSharp, HarfBuzzSharp, ANGLE) are not signed with this certificate.
+The macOS packages are signed with the maintainer's Apple Developer ID and notarized by Apple: the
+app, its Finder extension and libraries, the disk image and the `gbcopy` command line tool.
 
-The macOS packages are signed with the maintainer's Apple Developer ID and notarized by Apple.
+The Windows release files are **not signed** for now: Windows SmartScreen may warn about an unknown
+publisher when the installer is first run. Their integrity can be checked against `SHA256SUMS.txt`,
+published with every release. The release workflow is ready to sign them with an Authenticode
+certificate once the project has one.
 
 ## How releases are built
 
-Every signed file is built from the source code in this repository by
-[GitHub Actions](.github/workflows/release.yml), from a version tag on the `main` branch. Changes reach
-`main` only through pull requests that pass the automated build and tests on Windows and macOS.
-Nobody builds or signs release files by hand.
+Every release file is built from the source code in this repository by
+[GitHub Actions](.github/workflows/release.yml), from a version tag on the `main` branch, and signed
+there (macOS). Changes reach `main` only through pull requests that pass the automated build and tests
+on Windows and macOS. Nobody builds or signs release files by hand.
 
 ## Team roles
 
@@ -24,8 +24,8 @@ The project currently has a single maintainer, who holds every role:
 - Committers and reviewers: [Giulio Banterla](https://github.com/giuliobanterla)
 - Approvers: [Giulio Banterla](https://github.com/giuliobanterla)
 
-Every signing request is approved by hand, release by release. Team members use multi-factor
-authentication for GitHub and SignPath.
+Releases are published by hand, one version tag at a time. Team members use multi-factor
+authentication for GitHub and Apple.
 
 ## Privacy
 

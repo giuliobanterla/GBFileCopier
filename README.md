@@ -31,8 +31,8 @@ Download the packages from the [Releases](https://github.com/giuliobanterla/GBFi
   `gbcopy-<version>-macos.tar.gz`, signed as well.
 - **Windows** (10 or later, x64): run `GBFileCopier-<version>-windows-x64-setup.exe`; it installs
   for the current user without administrator rights (or for all users, if you choose so), with a
-  Start menu entry and `gbcopy.exe` next to the app. SmartScreen may warn about an unknown publisher
-  until the installer is signed: choose *More info* → *Run anyway*. A portable `.zip` is also available.
+  Start menu entry and `gbcopy.exe` next to the app. The installer is not signed, so SmartScreen
+  may warn about an unknown publisher: choose *More info* → *Run anyway*. A portable `.zip` is also available.
 
 `SHA256SUMS.txt` lists the checksums of every file. How the release files are built and signed:
 [Code signing policy](CODE_SIGNING_POLICY.md).
@@ -223,9 +223,9 @@ dotnet publish src/GBFileCopier.Cli -c Release
 
 ## Code signing policy
 
-Windows releases: free code signing provided by [SignPath.io](https://about.signpath.io), certificate
-by [SignPath Foundation](https://signpath.org). macOS releases: signed with the maintainer's Developer ID
-and notarized by Apple. Details, team roles and privacy: [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
+macOS releases: signed with the maintainer's Developer ID and notarized by Apple. Windows releases are
+not signed for now (check them against `SHA256SUMS.txt`). Details, team roles and privacy:
+[CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
 
 ## License
 
