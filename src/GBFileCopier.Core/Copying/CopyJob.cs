@@ -1,6 +1,7 @@
 using System.Globalization;
 using GBFileCopier.Core.Hashing;
 using GBFileCopier.Core.Resources;
+using Microsoft.Win32.SafeHandles;
 
 namespace GBFileCopier.Core.Copying;
 
@@ -17,6 +18,12 @@ public sealed class CopyJob
     private readonly PauseController _pause = new();
     private readonly IFileSystemPlatform _platform;
     private readonly CopyOptions _pipelineOptions;
+
+    // Per drive, the newest files written with only a write barrier: one per drive is flushed at the end.
+    // The destination tree can reach other drives through links or mount points: they are flushed too.
+    private readonly Dictionary<string, List<string>> _awaitingFlush = new(DestinationDrive.KeyComparer);
+    private readonly Dictionary<string, string> _driveOfFolder = new(DestinationDrive.KeyComparer);
+    private string? _flushWarning;
     private int _started;
 
     /// <param name="request">What to copy and how.</param>
@@ -36,7 +43,13 @@ public sealed class CopyJob
         _platform = platform ?? ManagedFileSystemPlatform.Instance;
         var onNetwork = destinationOnNetwork ?? DestinationDrive.IsNetwork(request.Destination);
         FlushesEachFile = request.Options.FlushToDisk && (request.Options.FlushOnNetworkShares || !onNetwork);
-        _pipelineOptions = request.Options with { FlushToDisk = FlushesEachFile };
+        // Copies: a barrier per file and one flush at the end. Moves across volumes keep a full flush per
+        // file: the source is deleted right after, on another disk that the barrier does not order.
+        _pipelineOptions = request.Options with
+        {
+            FlushToDisk = FlushesEachFile,
+            BarrierThenFinalFlush = request.Mode == CopyMode.Copy,
+        };
     }
 
     public CopyRequest Request { get; }
@@ -123,6 +136,8 @@ public sealed class CopyJob
         CreateDirectories(plan, Add);
 
         var cancelled = false;
+        try
+        {
         foreach (var item in plan.Files)
         {
             if (cancelled)
@@ -149,9 +164,103 @@ public sealed class CopyJob
         {
             FinishDirectories(plan);
         }
+        }
+        finally
+        {
+            // Also when something fails on the way: what was copied is forced to disk
+            FlushAwaitingFiles();
+        }
 
         tracker.Finish();
         return CreateResult(results, tracker.Elapsed, cancelled);
+    }
+
+    /// <summary>Keeps the target among the newest few of its drive, the drive found through any links.</summary>
+    private void RememberForFlush(string target)
+    {
+        var folder = Path.GetDirectoryName(target)!;
+        if (!_driveOfFolder.TryGetValue(folder, out var drive))
+        {
+            drive = DestinationDrive.KeyFor(ResolveLinks(folder));
+            _driveOfFolder[folder] = drive;
+        }
+
+        if (!_awaitingFlush.TryGetValue(drive, out var files))
+        {
+            _awaitingFlush[drive] = files = [];
+        }
+
+        files.Add(target);
+        if (files.Count > 4)
+        {
+            files.RemoveAt(0); // older ones are only a fallback if the newest are deleted meanwhile
+        }
+    }
+
+    /// <summary>The path with every symbolic link along it followed: where the files really go.</summary>
+    internal static string ResolveLinks(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(full) ?? string.Empty;
+        var resolved = root;
+        foreach (var part in full[root.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            resolved = Path.Combine(resolved, part);
+            try
+            {
+                if (new DirectoryInfo(resolved) is { LinkTarget: not null } link && link.ResolveLinkTarget(returnFinalTarget: true) is { } target)
+                {
+                    resolved = target.FullName;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Keep the path as it is
+            }
+        }
+
+        return resolved;
+    }
+
+    /// <summary>
+    /// The end of the job, also when cancelled or failed: one full flush per drive makes it write its
+    /// whole cache, so the files written with only a barrier are on permanent storage before the job
+    /// reports. Through the newest file of that drive that can still be opened; if the flush itself
+    /// fails, the job gets a warning.
+    /// </summary>
+    private void FlushAwaitingFiles()
+    {
+        foreach (var (drive, files) in _awaitingFlush)
+        {
+            for (var index = files.Count - 1; index >= 0; index--)
+            {
+                SafeFileHandle handle;
+                try
+                {
+                    handle = File.OpenHandle(files[index], FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    continue; // deleted or moved meanwhile: an older one
+                }
+
+                using (handle)
+                {
+                    try
+                    {
+                        _platform.FlushToDisk(handle);
+                    }
+                    catch (IOException ex)
+                    {
+                        _flushWarning = string.Format(CultureInfo.CurrentCulture, Messages.FilesNotFlushed, drive, ex.Message);
+                    }
+                }
+
+                break;
+            }
+        }
+
+        _awaitingFlush.Clear();
     }
 
     private CopyJobResult CreateResult(List<FileCopyResult> results, TimeSpan elapsed, bool wasCancelled) => new()
@@ -162,6 +271,7 @@ public sealed class CopyJob
         Elapsed = elapsed,
         WasCancelled = wasCancelled,
         CopiedBytes = results.Where(r => r.Status == FileCopyStatus.Succeeded).Sum(r => r.Length),
+        Warning = _flushWarning,
     };
 
     private static void CreateDirectories(CopyPlan plan, Action<FileCopyResult> add)
@@ -344,7 +454,7 @@ public sealed class CopyJob
             var source = new FileInfo(item.SourcePath);
             var metadata = SourceMetadata.Read(source);
 
-            var (bytes, hash) = await FilePipeline.CopyAsync(
+            var (bytes, hash, onlyOrdered) = await FilePipeline.CopyAsync(
                 item.SourcePath, temp, metadata.Length, _pipelineOptions, _platform, _pause, onBytes, cancellationToken);
 
             source.Refresh();
@@ -374,6 +484,10 @@ public sealed class CopyJob
 
             File.Move(temp, target, overwrite);
             temp = null;
+            if (onlyOrdered)
+            {
+                RememberForFlush(target);
+            }
 
             var warning = ApplyMetadata(target, metadata);
             return (hash is null ? null : StreamingHasher.ToHex(hash), verified, warning);

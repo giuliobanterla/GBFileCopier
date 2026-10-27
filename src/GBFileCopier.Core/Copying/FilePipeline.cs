@@ -17,8 +17,11 @@ internal static class FilePipeline
 
     private readonly record struct Block(byte[] Buffer, int Length);
 
-    /// <returns>Bytes copied and the checksum of the source (null without an algorithm).</returns>
-    public static async Task<(long Bytes, byte[]? Hash)> CopyAsync(
+    /// <returns>
+    /// Bytes copied, the checksum of the source (null without an algorithm), and whether only a write
+    /// barrier was used (the data still has to be flushed to permanent storage later).
+    /// </returns>
+    public static async Task<(long Bytes, byte[]? Hash, bool OnlyOrdered)> CopyAsync(
         string sourcePath,
         string destinationPath,
         long expectedLength,
@@ -136,12 +139,18 @@ internal static class FilePipeline
 
         var written = writer.Result;
         RandomAccess.SetLength(destination, written); // drop any preallocated space beyond the data
+        var onlyOrdered = false;
         if (options.FlushToDisk)
         {
-            platform.FlushToDisk(destination);
+            // The barrier keeps the order: the data is on the disk before the file gets its final name
+            onlyOrdered = options.BarrierThenFinalFlush && platform.TryOrderWrites(destination);
+            if (!onlyOrdered)
+            {
+                platform.FlushToDisk(destination);
+            }
         }
 
-        return (written, hasher?.GetHashAndReset());
+        return (written, hasher?.GetHashAndReset(), onlyOrdered);
     }
 
     /// <summary>Reads a whole file, bypassing the OS cache where the platform allows it, and returns its checksum.</summary>

@@ -75,6 +75,12 @@ public sealed record CopyOptions
     /// </summary>
     public bool FlushOnNetworkShares { get; init; }
 
+    /// <summary>
+    /// Set by the job for copies: a write barrier per file where the platform has one, and one flush
+    /// of the whole drive at the end of the job, instead of a full flush per file.
+    /// </summary>
+    internal bool BarrierThenFinalFlush { get; init; }
+
     /// <summary>How many times a file is retried after a transient error.</summary>
     public int RetryCount { get; init; } = 2;
 

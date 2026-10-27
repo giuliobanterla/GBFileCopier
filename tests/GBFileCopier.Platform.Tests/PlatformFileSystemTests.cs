@@ -23,6 +23,29 @@ public sealed class PlatformFileSystemTests : IDisposable
     }
 
     [Fact]
+    public void WriteBarrier_OnMacOS_IsAvailable_ElsewhereNot()
+    {
+        var path = _temp.Combine("barrier.bin");
+        using var handle = File.OpenHandle(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.Asynchronous);
+        RandomAccess.Write(handle, new byte[10_000], 0);
+
+        // APFS (the temporary folder) has barriers; Windows has no such call
+        Assert.Equal(OperatingSystem.IsMacOS(), Platform.TryOrderWrites(handle));
+    }
+
+    [Fact]
+    public void FlushToDisk_ThroughAReadOnlyHandle_Succeeds()
+    {
+        // The end of a job flushes the drive through a file opened only for reading. macOS only: that is
+        // where it happens (Windows has no barrier, and FlushFileBuffers needs a handle open for writing)
+        Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS only");
+        var path = _temp.CreateFile("written.bin", 10_000);
+        using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
+        Platform.FlushToDisk(handle);
+    }
+
+    [Fact]
     public void FlushToDisk_OnAWrittenFile_Succeeds()
     {
         var path = _temp.Combine("flush.bin");

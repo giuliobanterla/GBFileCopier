@@ -49,6 +49,9 @@
   <data name="MetadataAttributes" xml:space="preserve">
     <value>attributes</value>
   </data>
+  <data name="FilesNotFlushed" xml:space="preserve">
+    <value>The copies on {0} may not be on the disk yet: {1}</value>
+  </data>
   <data name="CannotFlushToDisk" xml:space="preserve">
     <value>Cannot flush the file to disk</value>
   </data>

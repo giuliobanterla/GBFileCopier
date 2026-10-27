@@ -168,7 +168,13 @@ On Windows and macOS, native APIs make the safety checks real:
 - **Verification reads from the disk**, not from the memory cache that still holds the data just
   written (`FILE_FLAG_NO_BUFFERING` on Windows; cache eviction plus `F_NOCACHE` on macOS).
 - **Flushing reaches permanent storage** (`FlushFileBuffers`; `F_FULLFSYNC` on macOS, which also
-  empties the drive's own cache). On network shares (a NAS) files are not flushed one by one by
+  empties the drive's own cache). On macOS a copy gives each file a write barrier
+  (`F_BARRIERFSYNC`: its data reaches the disk before it gets its final name, so a power cut never
+  leaves a damaged file under that name) and flushes each destination drive once at the end of the
+  job, also when it is cancelled (a failure is reported on the job): copies of
+  many small files are about ten times faster than with a full flush per file (2,000 small files:
+  4 s instead of 45 s). Moves keep a full flush per file, as each source is deleted right after its
+  copy. On network shares (a NAS) files are not flushed one by one by
   default: the server must then write each file to its disks before answering, which made copies
   of many small files several times slower (150 photos of 2 MB to a Synology: 120 s instead of
   27 s). The NAS writes its cache to disk by itself within seconds; `--flush-network`, or the
