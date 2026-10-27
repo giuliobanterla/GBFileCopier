@@ -259,7 +259,7 @@ jobs:
         run: |
           prerelease=""
           [[ "$VERSION" == *-* ]] && prerelease="--prerelease"
-          # The SignPath Foundation terms ask for the code signing policy to be linked from the release pages
+          # Every release page links the code signing policy: how the files are built and signed, and privacy
           notes="Download the package for your system below. How the files are built and signed: [Code signing policy](https://github.com/$GITHUB_REPOSITORY/blob/main/CODE_SIGNING_POLICY.md)."
           gh release create "$GITHUB_REF_NAME" packages/* --repo "$GITHUB_REPOSITORY" \
             --title "GBFileCopier $VERSION" --notes "$notes" --generate-notes $prerelease
