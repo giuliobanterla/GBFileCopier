@@ -40,6 +40,12 @@ var noFlushOption = new Option<bool>("--no-flush")
     Description = "Don't force each file to disk before going on (faster, less safe)",
 };
 
+var parallelOption = new Option<int>("--parallel")
+{
+    Description = "Small files copied at the same time; 1 copies one file at a time",
+    DefaultValueFactory = _ => 4,
+};
+
 var flushNetworkOption = new Option<bool>("--flush-network")
 {
     Description = "Force each file to disk also on network shares (much slower with many small files)",
@@ -72,7 +78,7 @@ Command CreateTransferCommand(string name, CopyMode mode, string description)
 {
     var command = new Command(name, description)
     {
-        pathsArgument, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption,
+        pathsArgument, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption, parallelOption,
     };
     command.SetAction(async (parseResult, cancellationToken) =>
     {
@@ -101,7 +107,7 @@ Command CreatePasteCommand()
     };
     var command = new Command("paste", "Paste the files copied (or cut) in the Finder or in Explorer")
     {
-        destinationArgument, moveOption, copyOption, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption,
+        destinationArgument, moveOption, copyOption, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption, parallelOption,
     };
     command.Validators.Add(result =>
     {
@@ -173,6 +179,7 @@ async Task<CopyJobResult> RunTransferAsync(
             RetryCount = parseResult.GetValue(retriesOption),
             FlushToDisk = !parseResult.GetValue(noFlushOption),
             FlushOnNetworkShares = parseResult.GetValue(flushNetworkOption),
+            ParallelFiles = Math.Max(1, parseResult.GetValue(parallelOption)),
         },
     };
 

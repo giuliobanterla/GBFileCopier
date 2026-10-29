@@ -13,9 +13,13 @@ public sealed class NetworkFlushTests : IDisposable
     /// <summary>The portable platform, counting the flushes; with <see cref="HasBarrier"/>, also offering write barriers.</summary>
     private sealed class CountingPlatform : IFileSystemPlatform
     {
-        public int Flushes { get; private set; }
+        private int _flushes;
+        private int _barriers;
 
-        public int Barriers { get; private set; }
+        // Files are copied in parallel: counted atomically
+        public int Flushes => _flushes;
+
+        public int Barriers => _barriers;
 
         public bool HasBarrier { get; init; }
 
@@ -28,7 +32,7 @@ public sealed class NetworkFlushTests : IDisposable
                 return false;
             }
 
-            Barriers++;
+            Interlocked.Increment(ref _barriers);
             return true;
         }
 
@@ -38,7 +42,7 @@ public sealed class NetworkFlushTests : IDisposable
 
         public void FlushToDisk(SafeFileHandle handle)
         {
-            Flushes++;
+            Interlocked.Increment(ref _flushes);
             if (FlushFails)
             {
                 throw new IOException("The drive did not answer");

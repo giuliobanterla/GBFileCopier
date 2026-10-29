@@ -259,19 +259,21 @@ public sealed class MainViewModelTests : IDisposable
         viewModel.Destination = _temp.Combine("dst");
         var copy = viewModel.CopyCommand.ExecuteAsync(null);
         await WaitUntil(() => _ui.ConflictsAsked == 1);
-        await WaitUntil(() => viewModel.Jobs[0].DoneCount == 1);
+        // Small files are copied in parallel: a and c finish while b waits for the answer
+        await WaitUntil(() => viewModel.Jobs[0].DoneCount == 2);
         var job = viewModel.Jobs[0];
 
         Assert.True(job.HasFiles);
         Assert.Equal(3, job.Files.Count);
-        Assert.Equal(_temp.Combine("dst", "c.txt"), job.Files[2].DestinationPath); // where it goes, before it is copied
-        Assert.Equal("Queued", job.Files[2].Status);
+        Assert.Equal(_temp.Combine("dst", "b.txt"), job.Files[1].DestinationPath); // where it goes, before it is copied
+        Assert.False(job.Files[1].IsDone);
         Assert.True(job.Files[0].IsOk);
-        Assert.Equal((2, 3000L), (job.QueuedCount, job.QueuedBytes));
-        Assert.StartsWith("Queued: 2 (", job.FilesSummary, StringComparison.Ordinal);
+        Assert.True(job.Files[2].IsOk);
+        Assert.Equal((1, 2000L), (job.QueuedCount, job.QueuedBytes));
+        Assert.StartsWith("Queued: 1 (", job.FilesSummary, StringComparison.Ordinal);
 
         job.SelectedFilter = job.FilterOptions.First(o => o.Filter == JobFileFilter.Queued);
-        Assert.Equal(["b.txt", "c.txt"], job.Files.Select(f => f.Name));
+        Assert.Equal(["b.txt"], job.Files.Select(f => f.Name));
 
         _ui.ConflictGate.SetResult();
         await copy;

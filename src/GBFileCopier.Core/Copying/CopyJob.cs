@@ -24,6 +24,8 @@ public sealed class CopyJob
     private readonly Dictionary<string, List<string>> _awaitingFlush = new(DestinationDrive.KeyComparer);
     private readonly Dictionary<string, string> _driveOfFolder = new(DestinationDrive.KeyComparer);
     private string? _flushWarning;
+    private readonly Lock _flushLock = new();
+
     private int _started;
 
     /// <param name="request">What to copy and how.</param>
@@ -101,11 +103,34 @@ public sealed class CopyJob
         ConflictResolver? conflictResolver,
         CancellationToken cancellationToken)
     {
+        // Results of the planned files go into their slot, so that the report keeps the plan's order
+        // whatever order the parallel copies finish in; the others (scan problems, folders) come first
         var results = new List<FileCopyResult>();
-        void Add(FileCopyResult result)
+        FileCopyResult?[] fileResults = [];
+        var resultLock = new Lock();
+        void Add(FileCopyResult result, int slot = -1)
         {
-            results.Add(result);
+            lock (resultLock)
+            {
+                if (slot >= 0)
+                {
+                    fileResults[slot] = result;
+                }
+                else
+                {
+                    results.Add(result);
+                }
+            }
+
             FileFinished?.Invoke(result);
+        }
+
+        List<FileCopyResult> AllResults()
+        {
+            lock (resultLock)
+            {
+                return [.. results, .. fileResults.OfType<FileCopyResult>()];
+            }
         }
 
         progress?.Report(new CopyProgress(CopyPhase.Scanning, null, 0, 0, 0, 0, TimeSpan.Zero));
@@ -120,6 +145,7 @@ public sealed class CopyJob
             return CreateResult(results, TimeSpan.Zero, wasCancelled: true);
         }
 
+        fileResults = new FileCopyResult?[plan.Files.Count];
         Planned?.Invoke([.. plan.Files.Select(f => new PlannedFile(f.Kind, f.SourcePath, f.DestinationPath, f.Length))]);
         foreach (var error in plan.Errors)
         {
@@ -133,37 +159,66 @@ public sealed class CopyJob
         }
 
         var tracker = new ProgressTracker(progress, plan.TotalBytes * Passes, plan.Files.Count);
-        CreateDirectories(plan, Add);
+        CreateDirectories(plan, result => Add(result));
 
-        var cancelled = false;
-        try
+        // Conflicts are resolved one at a time, also with files copied in parallel: one dialog at a
+        // time, and an answer "for all" applies to the next ones
+        using var conflictGate = new SemaphoreSlim(1, 1);
+        var cancelled = 0;
+        async Task CopyOneAsync(int slot)
         {
-        foreach (var item in plan.Files)
-        {
-            if (cancelled)
+            var item = plan.Files[slot];
+            if (Volatile.Read(ref cancelled) != 0)
             {
-                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled));
-                continue;
+                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled), slot);
+                return;
             }
 
             try
             {
                 await _pause.WaitIfPausedAsync(cancellationToken);
-                Add(await ProcessItemAsync(item, tracker, conflictResolver, cancellationToken));
+                Add(await ProcessItemAsync(item, tracker, conflictResolver, conflictGate, cancellationToken), slot);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                cancelled = true;
-                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled));
+                Volatile.Write(ref cancelled, 1);
+                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled), slot);
             }
 
             tracker.CompleteFile();
         }
 
-        if (!cancelled)
+        try
         {
-            FinishDirectories(plan);
-        }
+            // Runs of small files go in parallel, each big file alone, in the plan's order
+            var parallel = new ParallelOptions { MaxDegreeOfParallelism = Options.ParallelFiles };
+            var sharedTargets = SharedTargets(plan);
+            var run = new List<int>();
+            for (var slot = 0; slot <= plan.Files.Count; slot++)
+            {
+                var item = slot < plan.Files.Count ? plan.Files[slot] : null;
+                if (item is not null && Options.ParallelFiles > 1 && IsSmall(item) && !sharedTargets.Contains(item.DestinationPath))
+                {
+                    run.Add(slot);
+                    continue;
+                }
+
+                if (run.Count > 0)
+                {
+                    await Parallel.ForEachAsync(run, parallel, async (index, _) => await CopyOneAsync(index));
+                    run.Clear();
+                }
+
+                if (item is not null)
+                {
+                    await CopyOneAsync(slot);
+                }
+            }
+
+            if (cancelled == 0)
+            {
+                FinishDirectories(plan);
+            }
         }
         finally
         {
@@ -172,11 +227,40 @@ public sealed class CopyJob
         }
 
         tracker.Finish();
-        return CreateResult(results, tracker.Elapsed, cancelled);
+        return CreateResult(AllResults(), tracker.Elapsed, cancelled != 0);
+    }
+
+    private bool IsSmall(CopyItem item) => item.Kind == CopyItemKind.SymbolicLink || item.Length < Options.SmallFileLimit;
+
+    /// <summary>
+    /// Destinations planned more than once (a file, and its folder too): those files are copied one
+    /// at a time, so that the second one finds the first and goes through the conflict policy.
+    /// </summary>
+    private static HashSet<string> SharedTargets(CopyPlan plan)
+    {
+        var seen = new HashSet<string>(DestinationDrive.KeyComparer);
+        var shared = new HashSet<string>(DestinationDrive.KeyComparer);
+        foreach (var item in plan.Files)
+        {
+            if (!seen.Add(item.DestinationPath))
+            {
+                shared.Add(item.DestinationPath);
+            }
+        }
+
+        return shared;
     }
 
     /// <summary>Keeps the target among the newest few of its drive, the drive found through any links.</summary>
     private void RememberForFlush(string target)
+    {
+        lock (_flushLock)
+        {
+            RememberForFlushLocked(target);
+        }
+    }
+
+    private void RememberForFlushLocked(string target)
     {
         var folder = Path.GetDirectoryName(target)!;
         if (!_driveOfFolder.TryGetValue(folder, out var drive))
@@ -319,6 +403,7 @@ public sealed class CopyJob
         CopyItem item,
         ProgressTracker tracker,
         ConflictResolver? conflictResolver,
+        SemaphoreSlim conflictGate,
         CancellationToken cancellationToken)
     {
         var workload = item.Length * Passes;
@@ -327,13 +412,27 @@ public sealed class CopyJob
 
         if (PathExists(target))
         {
-            switch (await ResolveConflictAsync(item, target, conflictResolver, cancellationToken))
+            ConflictAction action;
+            await conflictGate.WaitAsync(cancellationToken);
+            try
+            {
+                action = await ResolveConflictAsync(item, target, conflictResolver, cancellationToken);
+                if (action == ConflictAction.KeepBoth)
+                {
+                    target = GetAvailableName(target); // chosen while no other file is choosing one
+                }
+            }
+            finally
+            {
+                conflictGate.Release();
+            }
+
+            switch (action)
             {
                 case ConflictAction.Overwrite:
                     overwrite = true;
                     break;
                 case ConflictAction.KeepBoth:
-                    target = GetAvailableName(target);
                     break;
                 default:
                     tracker.AddBytes(workload);
