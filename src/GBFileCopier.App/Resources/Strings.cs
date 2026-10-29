@@ -306,6 +306,9 @@ public static class Strings
     /// <summary>About GBFileCopier</summary>
     public static string MenuAbout => Get();
 
+    /// <summary>Donate with PayPal…</summary>
+    public static string MenuDonate => Get();
+
     /// <summary>GBFileCopier on GitHub</summary>
     public static string MenuWebsite => Get();
 

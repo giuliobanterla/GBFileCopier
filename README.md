@@ -237,7 +237,8 @@ not signed for now (check them against `SHA256SUMS.txt`). Details, team roles an
 ## Support
 
 GBFileCopier is free. If it is useful to you, you can support its development with a donation:
-[paypal.me/GiulioBanterla](https://www.paypal.me/GiulioBanterla) (also from *About* in the app). Bug reports
+[paypal.me/GiulioBanterla](https://www.paypal.me/GiulioBanterla) (also from *Help → Donate with PayPal…* and
+*About* in the app). Bug reports
 and ideas are welcome in the [issues](https://github.com/giuliobanterla/GBFileCopier/issues).
 
 ## License
