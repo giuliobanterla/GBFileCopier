@@ -295,6 +295,9 @@
   <data name="MenuAbout" xml:space="preserve">
     <value>Informazioni su GBFileCopier</value>
   </data>
+  <data name="MenuDonate" xml:space="preserve">
+    <value>Dona con PayPal…</value>
+  </data>
   <data name="MenuWebsite" xml:space="preserve">
     <value>GBFileCopier su GitHub</value>
   </data>

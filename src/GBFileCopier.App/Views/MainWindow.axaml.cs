@@ -56,7 +56,11 @@ public partial class MainWindow : Window
             Item(Strings.MenuPasteFiles, () => ViewModel?.Paste(move: false)),
             Item(Strings.MenuPasteFilesToMove, () => ViewModel?.Paste(move: true)),
         };
-        var help = new NativeMenu { Item(Strings.MenuWebsite, () => _ = Launcher.LaunchUriAsync(AboutWindow.Website)) };
+        var help = new NativeMenu
+        {
+            Item(Strings.MenuWebsite, () => _ = Launcher.LaunchUriAsync(AboutWindow.Website)),
+            Item(Strings.MenuDonate, () => _ = Launcher.LaunchUriAsync(AboutWindow.DonationPage)),
+        };
         if (!OperatingSystem.IsMacOS())
         {
             help.Add(Item(Strings.MenuCheckForUpdates, CheckForUpdates));
