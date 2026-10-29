@@ -103,6 +103,23 @@ public sealed class ParallelCopyTests : IDisposable
     }
 
     [Fact]
+    public async Task KeepBoth_DoesNotTakeTheNameOfAnotherFileInTheJob()
+    {
+        // dst has IMG.jpg; the job copies IMG.jpg (kept as a new name) and a file really called "IMG (2).jpg"
+        _temp.CreateFile("dst/IMG.jpg", text: "old");
+        var sources = new List<string> { _temp.CreateFile("src/IMG.jpg", text: "new") };
+        sources.AddRange(Enumerable.Range(0, 6).Select(i => _temp.CreateFile($"src/other{i}.jpg")));
+        sources.Add(_temp.CreateFile("src/IMG (2).jpg", text: "literal"));
+
+        var (result, _) = await CopyAsync(sources, new CopyOptions { ConflictPolicy = ConflictPolicy.KeepBoth });
+
+        Assert.Equal(sources.Count, result.SucceededCount);
+        Assert.Equal("old", File.ReadAllText(_temp.Combine("dst", "IMG.jpg")));
+        Assert.Equal("literal", File.ReadAllText(_temp.Combine("dst", "IMG (2).jpg")));
+        Assert.Equal("new", File.ReadAllText(_temp.Combine("dst", "IMG (3).jpg"))); // the next free name, not a planned one
+    }
+
+    [Fact]
     public async Task Conflicts_AreAskedOneAtATime()
     {
         var sources = CreateFiles(8);

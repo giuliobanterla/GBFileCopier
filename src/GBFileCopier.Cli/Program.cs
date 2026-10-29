@@ -42,9 +42,16 @@ var noFlushOption = new Option<bool>("--no-flush")
 
 var parallelOption = new Option<int>("--parallel")
 {
-    Description = "Small files copied at the same time; 1 copies one file at a time",
+    Description = $"Small files copied at the same time, 1 to {CopyOptions.MaxParallelFiles}; 1 copies one file at a time",
     DefaultValueFactory = _ => 4,
 };
+parallelOption.Validators.Add(result =>
+{
+    if (result.GetValueOrDefault<int>() is < 1 or > CopyOptions.MaxParallelFiles)
+    {
+        result.AddError($"--parallel must be between 1 and {CopyOptions.MaxParallelFiles}");
+    }
+});
 
 var flushNetworkOption = new Option<bool>("--flush-network")
 {
@@ -179,7 +186,7 @@ async Task<CopyJobResult> RunTransferAsync(
             RetryCount = parseResult.GetValue(retriesOption),
             FlushToDisk = !parseResult.GetValue(noFlushOption),
             FlushOnNetworkShares = parseResult.GetValue(flushNetworkOption),
-            ParallelFiles = Math.Max(1, parseResult.GetValue(parallelOption)),
+            ParallelFiles = parseResult.GetValue(parallelOption),
         },
     };
 

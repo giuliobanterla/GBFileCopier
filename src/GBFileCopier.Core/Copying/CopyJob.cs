@@ -24,6 +24,10 @@ public sealed class CopyJob
     private readonly Dictionary<string, List<string>> _awaitingFlush = new(DestinationDrive.KeyComparer);
     private readonly Dictionary<string, string> _driveOfFolder = new(DestinationDrive.KeyComparer);
     private string? _flushWarning;
+
+    // Names that "keep both" must not take: every planned destination, and the names already given.
+    // Only touched while holding the conflict gate.
+    private HashSet<string> _reservedNames = new(FileNameComparer.Instance);
     private readonly Lock _flushLock = new();
 
     private int _started;
@@ -67,7 +71,9 @@ public sealed class CopyJob
 
     /// <summary>
     /// Called for each file, link or folder as soon as it is done (copied, skipped, failed or
-    /// cancelled), also for the problems found while scanning. Called on a thread pool thread.
+    /// cancelled), also for the problems found while scanning. Called on thread pool threads, several
+    /// at once and not in plan order when small files are copied in parallel; a source planned twice
+    /// is always copied in plan order.
     /// </summary>
     public Action<FileCopyResult>? FileFinished { get; set; }
 
@@ -168,8 +174,10 @@ public sealed class CopyJob
         async Task CopyOneAsync(int slot)
         {
             var item = plan.Files[slot];
-            if (Volatile.Read(ref cancelled) != 0)
+            // Also renames and links, which never wait on the token: a cancelled job stops there too
+            if (Volatile.Read(ref cancelled) != 0 || cancellationToken.IsCancellationRequested)
             {
+                Volatile.Write(ref cancelled, 1);
                 Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled), slot);
                 return;
             }
@@ -192,12 +200,13 @@ public sealed class CopyJob
         {
             // Runs of small files go in parallel, each big file alone, in the plan's order
             var parallel = new ParallelOptions { MaxDegreeOfParallelism = Options.ParallelFiles };
-            var sharedTargets = SharedTargets(plan);
+            var oneAtATime = OneAtATime(plan);
+            _reservedNames = new HashSet<string>(plan.Files.Select(f => f.DestinationPath), FileNameComparer.Instance);
             var run = new List<int>();
             for (var slot = 0; slot <= plan.Files.Count; slot++)
             {
                 var item = slot < plan.Files.Count ? plan.Files[slot] : null;
-                if (item is not null && Options.ParallelFiles > 1 && IsSmall(item) && !sharedTargets.Contains(item.DestinationPath))
+                if (item is not null && Options.ParallelFiles > 1 && IsSmall(item) && !oneAtATime.Contains(slot))
                 {
                     run.Add(slot);
                     continue;
@@ -233,22 +242,17 @@ public sealed class CopyJob
     private bool IsSmall(CopyItem item) => item.Kind == CopyItemKind.SymbolicLink || item.Length < Options.SmallFileLimit;
 
     /// <summary>
-    /// Destinations planned more than once (a file, and its folder too): those files are copied one
-    /// at a time, so that the second one finds the first and goes through the conflict policy.
+    /// The files that must not be copied in parallel: a destination planned more than once (the
+    /// second one must find the first and go through the conflict policy), and a source planned more
+    /// than once (a file and its folder too: its copies keep the plan's order, and a move has only
+    /// one source to delete).
     /// </summary>
-    private static HashSet<string> SharedTargets(CopyPlan plan)
+    private static HashSet<int> OneAtATime(CopyPlan plan)
     {
-        var seen = new HashSet<string>(DestinationDrive.KeyComparer);
-        var shared = new HashSet<string>(DestinationDrive.KeyComparer);
-        foreach (var item in plan.Files)
-        {
-            if (!seen.Add(item.DestinationPath))
-            {
-                shared.Add(item.DestinationPath);
-            }
-        }
-
-        return shared;
+        var destinations = plan.Files.GroupBy(f => f.DestinationPath, FileNameComparer.Instance).Where(g => g.Count() > 1).Select(g => g.Key);
+        var sources = plan.Files.GroupBy(f => f.SourcePath, FileNameComparer.Instance).Where(g => g.Count() > 1).Select(g => g.Key);
+        var shared = new HashSet<string>(destinations.Concat(sources), FileNameComparer.Instance);
+        return [.. Enumerable.Range(0, plan.Files.Count).Where(i => shared.Contains(plan.Files[i].DestinationPath) || shared.Contains(plan.Files[i].SourcePath))];
     }
 
     /// <summary>Keeps the target among the newest few of its drive, the drive found through any links.</summary>
@@ -419,7 +423,7 @@ public sealed class CopyJob
                 action = await ResolveConflictAsync(item, target, conflictResolver, cancellationToken);
                 if (action == ConflictAction.KeepBoth)
                 {
-                    target = GetAvailableName(target); // chosen while no other file is choosing one
+                    target = GetAvailableName(target, _reservedNames); // chosen while no other file is choosing one
                 }
             }
             finally
@@ -729,16 +733,18 @@ public sealed class CopyJob
     }
 
     /// <summary>"name (2).ext", "name (3).ext"... the first one that is free.</summary>
-    internal static string GetAvailableName(string path)
+    internal static string GetAvailableName(string path, HashSet<string>? reserved = null)
     {
         var directory = Path.GetDirectoryName(path)!;
         var name = Path.GetFileNameWithoutExtension(path);
         var extension = Path.GetExtension(path);
         for (var n = 2; ; n++)
         {
+            // Not existing, nor planned for another file being copied (maybe at this very moment)
             var candidate = Path.Combine(directory, $"{name} ({n}){extension}");
-            if (!PathExists(candidate))
+            if (!PathExists(candidate) && reserved?.Contains(candidate) != true)
             {
+                reserved?.Add(candidate);
                 return candidate;
             }
         }

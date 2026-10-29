@@ -99,6 +99,9 @@ public sealed record CopyOptions
     /// </summary>
     public int ParallelFiles { get; init; } = 4;
 
+    /// <summary>Each file in flight holds 2–3 open files and a few MB of buffers: more would hit the open file limit (256 on macOS).</summary>
+    public const int MaxParallelFiles = 32;
+
     /// <summary>Files from this size on are copied one at a time: one big file already keeps the disk busy.</summary>
     public long SmallFileLimit { get; init; } = 16 * 1024 * 1024;
 
@@ -116,6 +119,7 @@ public sealed record CopyOptions
 
         ArgumentOutOfRangeException.ThrowIfLessThan(BufferCount, 1, nameof(BufferCount));
         ArgumentOutOfRangeException.ThrowIfLessThan(ParallelFiles, 1, nameof(ParallelFiles));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(ParallelFiles, MaxParallelFiles, nameof(ParallelFiles));
         ArgumentOutOfRangeException.ThrowIfNegative(RetryCount, nameof(RetryCount));
         ArgumentOutOfRangeException.ThrowIfLessThan(RetryDelay, TimeSpan.Zero, nameof(RetryDelay));
     }

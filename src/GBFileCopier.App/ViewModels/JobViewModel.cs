@@ -374,7 +374,8 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        // The first row of this source still to finish: files are copied in plan order
+        // The first row of this source still to finish: a source planned twice is copied in plan order
+        // (other files can finish in any order, but each has a source of its own)
         var item = _filesBySource.GetValueOrDefault(result.SourcePath)?.FirstOrDefault(f => !f.IsDone);
         var isNew = item is null;
         if (isNew)
