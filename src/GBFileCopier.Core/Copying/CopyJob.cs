@@ -24,6 +24,12 @@ public sealed class CopyJob
     private readonly Dictionary<string, List<string>> _awaitingFlush = new(DestinationDrive.KeyComparer);
     private readonly Dictionary<string, string> _driveOfFolder = new(DestinationDrive.KeyComparer);
     private string? _flushWarning;
+
+    // Names that "keep both" must not take: every planned destination, and the names already given.
+    // Only touched while holding the conflict gate.
+    private HashSet<string> _reservedNames = new(FileNameComparer.Instance);
+    private readonly Lock _flushLock = new();
+
     private int _started;
 
     /// <param name="request">What to copy and how.</param>
@@ -65,7 +71,9 @@ public sealed class CopyJob
 
     /// <summary>
     /// Called for each file, link or folder as soon as it is done (copied, skipped, failed or
-    /// cancelled), also for the problems found while scanning. Called on a thread pool thread.
+    /// cancelled), also for the problems found while scanning. Called on thread pool threads, several
+    /// at once and not in plan order when small files are copied in parallel; a source planned twice
+    /// is always copied in plan order.
     /// </summary>
     public Action<FileCopyResult>? FileFinished { get; set; }
 
@@ -101,11 +109,34 @@ public sealed class CopyJob
         ConflictResolver? conflictResolver,
         CancellationToken cancellationToken)
     {
+        // Results of the planned files go into their slot, so that the report keeps the plan's order
+        // whatever order the parallel copies finish in; the others (scan problems, folders) come first
         var results = new List<FileCopyResult>();
-        void Add(FileCopyResult result)
+        FileCopyResult?[] fileResults = [];
+        var resultLock = new Lock();
+        void Add(FileCopyResult result, int slot = -1)
         {
-            results.Add(result);
+            lock (resultLock)
+            {
+                if (slot >= 0)
+                {
+                    fileResults[slot] = result;
+                }
+                else
+                {
+                    results.Add(result);
+                }
+            }
+
             FileFinished?.Invoke(result);
+        }
+
+        List<FileCopyResult> AllResults()
+        {
+            lock (resultLock)
+            {
+                return [.. results, .. fileResults.OfType<FileCopyResult>()];
+            }
         }
 
         progress?.Report(new CopyProgress(CopyPhase.Scanning, null, 0, 0, 0, 0, TimeSpan.Zero));
@@ -120,6 +151,7 @@ public sealed class CopyJob
             return CreateResult(results, TimeSpan.Zero, wasCancelled: true);
         }
 
+        fileResults = new FileCopyResult?[plan.Files.Count];
         Planned?.Invoke([.. plan.Files.Select(f => new PlannedFile(f.Kind, f.SourcePath, f.DestinationPath, f.Length))]);
         foreach (var error in plan.Errors)
         {
@@ -133,37 +165,69 @@ public sealed class CopyJob
         }
 
         var tracker = new ProgressTracker(progress, plan.TotalBytes * Passes, plan.Files.Count);
-        CreateDirectories(plan, Add);
+        CreateDirectories(plan, result => Add(result));
 
-        var cancelled = false;
-        try
+        // Conflicts are resolved one at a time, also with files copied in parallel: one dialog at a
+        // time, and an answer "for all" applies to the next ones
+        using var conflictGate = new SemaphoreSlim(1, 1);
+        var cancelled = 0;
+        async Task CopyOneAsync(int slot)
         {
-        foreach (var item in plan.Files)
-        {
-            if (cancelled)
+            var item = plan.Files[slot];
+            // Also renames and links, which never wait on the token: a cancelled job stops there too
+            if (Volatile.Read(ref cancelled) != 0 || cancellationToken.IsCancellationRequested)
             {
-                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled));
-                continue;
+                Volatile.Write(ref cancelled, 1);
+                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled), slot);
+                return;
             }
 
             try
             {
                 await _pause.WaitIfPausedAsync(cancellationToken);
-                Add(await ProcessItemAsync(item, tracker, conflictResolver, cancellationToken));
+                Add(await ProcessItemAsync(item, tracker, conflictResolver, conflictGate, cancellationToken), slot);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                cancelled = true;
-                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled));
+                Volatile.Write(ref cancelled, 1);
+                Add(CreateItemResult(item, item.DestinationPath, FileCopyStatus.Cancelled), slot);
             }
 
             tracker.CompleteFile();
         }
 
-        if (!cancelled)
+        try
         {
-            FinishDirectories(plan);
-        }
+            // Runs of small files go in parallel, each big file alone, in the plan's order
+            var parallel = new ParallelOptions { MaxDegreeOfParallelism = Options.ParallelFiles };
+            var oneAtATime = OneAtATime(plan);
+            _reservedNames = new HashSet<string>(plan.Files.Select(f => f.DestinationPath), FileNameComparer.Instance);
+            var run = new List<int>();
+            for (var slot = 0; slot <= plan.Files.Count; slot++)
+            {
+                var item = slot < plan.Files.Count ? plan.Files[slot] : null;
+                if (item is not null && Options.ParallelFiles > 1 && IsSmall(item) && !oneAtATime.Contains(slot))
+                {
+                    run.Add(slot);
+                    continue;
+                }
+
+                if (run.Count > 0)
+                {
+                    await Parallel.ForEachAsync(run, parallel, async (index, _) => await CopyOneAsync(index));
+                    run.Clear();
+                }
+
+                if (item is not null)
+                {
+                    await CopyOneAsync(slot);
+                }
+            }
+
+            if (cancelled == 0)
+            {
+                FinishDirectories(plan);
+            }
         }
         finally
         {
@@ -172,11 +236,35 @@ public sealed class CopyJob
         }
 
         tracker.Finish();
-        return CreateResult(results, tracker.Elapsed, cancelled);
+        return CreateResult(AllResults(), tracker.Elapsed, cancelled != 0);
+    }
+
+    private bool IsSmall(CopyItem item) => item.Kind == CopyItemKind.SymbolicLink || item.Length < Options.SmallFileLimit;
+
+    /// <summary>
+    /// The files that must not be copied in parallel: a destination planned more than once (the
+    /// second one must find the first and go through the conflict policy), and a source planned more
+    /// than once (a file and its folder too: its copies keep the plan's order, and a move has only
+    /// one source to delete).
+    /// </summary>
+    private static HashSet<int> OneAtATime(CopyPlan plan)
+    {
+        var destinations = plan.Files.GroupBy(f => f.DestinationPath, FileNameComparer.Instance).Where(g => g.Count() > 1).Select(g => g.Key);
+        var sources = plan.Files.GroupBy(f => f.SourcePath, FileNameComparer.Instance).Where(g => g.Count() > 1).Select(g => g.Key);
+        var shared = new HashSet<string>(destinations.Concat(sources), FileNameComparer.Instance);
+        return [.. Enumerable.Range(0, plan.Files.Count).Where(i => shared.Contains(plan.Files[i].DestinationPath) || shared.Contains(plan.Files[i].SourcePath))];
     }
 
     /// <summary>Keeps the target among the newest few of its drive, the drive found through any links.</summary>
     private void RememberForFlush(string target)
+    {
+        lock (_flushLock)
+        {
+            RememberForFlushLocked(target);
+        }
+    }
+
+    private void RememberForFlushLocked(string target)
     {
         var folder = Path.GetDirectoryName(target)!;
         if (!_driveOfFolder.TryGetValue(folder, out var drive))
@@ -319,6 +407,7 @@ public sealed class CopyJob
         CopyItem item,
         ProgressTracker tracker,
         ConflictResolver? conflictResolver,
+        SemaphoreSlim conflictGate,
         CancellationToken cancellationToken)
     {
         var workload = item.Length * Passes;
@@ -327,13 +416,27 @@ public sealed class CopyJob
 
         if (PathExists(target))
         {
-            switch (await ResolveConflictAsync(item, target, conflictResolver, cancellationToken))
+            ConflictAction action;
+            await conflictGate.WaitAsync(cancellationToken);
+            try
+            {
+                action = await ResolveConflictAsync(item, target, conflictResolver, cancellationToken);
+                if (action == ConflictAction.KeepBoth)
+                {
+                    target = GetAvailableName(target, _reservedNames); // chosen while no other file is choosing one
+                }
+            }
+            finally
+            {
+                conflictGate.Release();
+            }
+
+            switch (action)
             {
                 case ConflictAction.Overwrite:
                     overwrite = true;
                     break;
                 case ConflictAction.KeepBoth:
-                    target = GetAvailableName(target);
                     break;
                 default:
                     tracker.AddBytes(workload);
@@ -630,16 +733,18 @@ public sealed class CopyJob
     }
 
     /// <summary>"name (2).ext", "name (3).ext"... the first one that is free.</summary>
-    internal static string GetAvailableName(string path)
+    internal static string GetAvailableName(string path, HashSet<string>? reserved = null)
     {
         var directory = Path.GetDirectoryName(path)!;
         var name = Path.GetFileNameWithoutExtension(path);
         var extension = Path.GetExtension(path);
         for (var n = 2; ; n++)
         {
+            // Not existing, nor planned for another file being copied (maybe at this very moment)
             var candidate = Path.Combine(directory, $"{name} ({n}){extension}");
-            if (!PathExists(candidate))
+            if (!PathExists(candidate) && reserved?.Contains(candidate) != true)
             {
+                reserved?.Add(candidate);
                 return candidate;
             }
         }

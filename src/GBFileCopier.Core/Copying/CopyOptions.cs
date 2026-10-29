@@ -92,6 +92,19 @@ public sealed record CopyOptions
     /// <summary>Blocks that can be in flight between the reader and the writer.</summary>
     public int BufferCount { get; init; } = 4;
 
+    /// <summary>
+    /// Small files copied at the same time; 1 copies one file at a time. Each small file waits mostly
+    /// for the file system (create, flush, rename, timestamps), the more so on a network share:
+    /// overlapping a few of them keeps the disk or the network busy.
+    /// </summary>
+    public int ParallelFiles { get; init; } = 4;
+
+    /// <summary>Each file in flight holds 2–3 open files and a few MB of buffers: more would hit the open file limit (256 on macOS).</summary>
+    public const int MaxParallelFiles = 32;
+
+    /// <summary>Files from this size on are copied one at a time: one big file already keeps the disk busy.</summary>
+    public long SmallFileLimit { get; init; } = 16 * 1024 * 1024;
+
     /// <summary>The algorithm actually used: verification needs one even if none was chosen.</summary>
     public HashAlgorithmKind EffectiveHashAlgorithm =>
         HashAlgorithm == HashAlgorithmKind.None && Verify ? HashAlgorithmKind.XxHash3 : HashAlgorithm;
@@ -105,6 +118,8 @@ public sealed record CopyOptions
         }
 
         ArgumentOutOfRangeException.ThrowIfLessThan(BufferCount, 1, nameof(BufferCount));
+        ArgumentOutOfRangeException.ThrowIfLessThan(ParallelFiles, 1, nameof(ParallelFiles));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(ParallelFiles, MaxParallelFiles, nameof(ParallelFiles));
         ArgumentOutOfRangeException.ThrowIfNegative(RetryCount, nameof(RetryCount));
         ArgumentOutOfRangeException.ThrowIfLessThan(RetryDelay, TimeSpan.Zero, nameof(RetryDelay));
     }

@@ -158,6 +158,7 @@ gbcopy hash <files>... [--hash <algorithm>]
 | `--retries <n>` | Attempts after a transient error (default 2) |
 | `--no-flush` | Don't force each file to disk (faster, less safe) |
 | `--flush-network` | Force each file to disk also on network shares (much slower with many small files) |
+| `--parallel <n>` | Small files (under 16 MB) copied at the same time (default 4; 1 copies one file at a time) |
 
 Each file is written to a hidden temporary name, checked, and only then renamed into place:
 an interrupted copy never leaves partial files and never damages an existing one. With `move`,
