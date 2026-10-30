@@ -10,6 +10,7 @@ A free and open source file copy utility for **Windows** and **macOS**, inspired
 
 - Fast copy and move, with asynchronous I/O and a queue per destination drive
 - Integrity verification with checksums (xxHash, CRC32, MD5, SHA-1, SHA-256), computed while copying
+- Checksum files (.sha256, .md5, .sfv…) saved with the copy, and verification of a folder against them
 - Errors don't stop the job: failed files are skipped, listed and can be retried
 - Pause and resume of long transfers
 - Rules for name conflicts (overwrite, overwrite if older, skip, rename, keep both)
@@ -64,6 +65,14 @@ copies to one disk at once are slower than one after the other; jobs to differen
 same time. Each job can be paused or cancelled, also while it waits for its drive; select a finished
 job to see its results: what failed or was skipped, and why. Closing the window cancels the jobs
 still waiting or running.
+
+**Save checksum file** writes, after a copy without errors, the checksums of the files copied
+into the destination: `Photos.sha256` for a folder Photos, `IMG.jpg.sha256` for a single file,
+`checksums.sha256` for several sources (`.md5`, `.sfv` for CRC32… after the chosen checksum).
+They are in the usual format of `sha256sum`, `md5sum` and TeraCopy, with paths relative to the
+file. **File → Verify Checksum File…** reads back every file listed in such a file (also one made
+by those tools, or by `shasum --tag`) and reports those that differ or are missing; it runs as a
+job like the copies.
 
 Files and folders passed on the command line are added to the list.
 
@@ -148,6 +157,7 @@ gbcopy copy <sources>... <destination> [options]
 gbcopy move <sources>... <destination> [options]
 gbcopy paste [<destination>] [--move | --copy] [options]
 gbcopy hash <files>... [--hash <algorithm>]
+gbcopy verify <checksum-file> [--hash <algorithm>]
 ```
 
 | Option | |
@@ -159,6 +169,11 @@ gbcopy hash <files>... [--hash <algorithm>]
 | `--no-flush` | Don't force each file to disk (faster, less safe) |
 | `--flush-network` | Force each file to disk also on network shares (much slower with many small files) |
 | `--parallel <n>` | Small files (under 16 MB) copied at the same time (default 4; 1 copies one file at a time) |
+| `--checksum-file` | After a copy without errors, save the checksums into the destination (`Photos.sha256`, `.md5`, `.sfv`…, after `--hash`) |
+
+`gbcopy verify` reads back the files listed in a checksum file (`.sha256`, `.md5`, `.sfv`…, also
+from `sha256sum`, `md5 -r` or `shasum --tag`), with paths relative to its folder, and exits with 1 if
+any file differs or is missing.
 
 Each file is written to a hidden temporary name, checked, and only then renamed into place:
 an interrupted copy never leaves partial files and never damages an existing one. With `move`,

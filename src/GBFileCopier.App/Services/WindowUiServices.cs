@@ -33,6 +33,24 @@ internal sealed class WindowUiServices(Window window) : IUiServices
         return LocalPaths(folders);
     }
 
+    public async Task<string?> PickChecksumFileAsync()
+    {
+        var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.PickChecksumFileTitle,
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType(Strings.ChecksumFilesFilter)
+                {
+                    Patterns = ["*.sha256", "*.sha512", "*.sha1", "*.md5", "*.sfv", "*.xxh3", "*.xxh64", "*.xxh128", "*.crc64"],
+                },
+                FilePickerFileTypes.All,
+            ],
+        });
+        return LocalPaths(files) is [var path, ..] ? path : null;
+    }
+
     public async Task<ConflictAnswer> AskConflictAsync(FileConflict conflict)
     {
         var dialog = new ConflictWindow { DataContext = new ConflictViewModel(conflict) };

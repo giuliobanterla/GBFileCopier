@@ -58,6 +58,11 @@ var flushNetworkOption = new Option<bool>("--flush-network")
     Description = "Force each file to disk also on network shares (much slower with many small files)",
 };
 
+var checksumFileOption = new Option<bool>("--checksum-file")
+{
+    Description = "After a copy with no failures, save the checksums into the destination (Photos.sha256, .md5, .sfv…, after --hash)",
+};
+
 var pathsArgument = new Argument<string[]>("paths")
 {
     Description = "One or more sources (files or folders), followed by the destination folder",
@@ -69,6 +74,7 @@ rootCommand.Subcommands.Add(CreateTransferCommand("copy", CopyMode.Copy, "Copy f
 rootCommand.Subcommands.Add(CreateTransferCommand("move", CopyMode.Move, "Move files and folders: each source is deleted only after its copy has succeeded"));
 rootCommand.Subcommands.Add(CreatePasteCommand());
 rootCommand.Subcommands.Add(CreateHashCommand());
+rootCommand.Subcommands.Add(CreateVerifyCommand());
 
 var infoCommand = new Command("info", "Show version and platform information");
 infoCommand.SetAction(_ =>
@@ -85,7 +91,7 @@ Command CreateTransferCommand(string name, CopyMode mode, string description)
 {
     var command = new Command(name, description)
     {
-        pathsArgument, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption, parallelOption,
+        pathsArgument, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption, parallelOption, checksumFileOption,
     };
     command.SetAction(async (parseResult, cancellationToken) =>
     {
@@ -114,7 +120,7 @@ Command CreatePasteCommand()
     };
     var command = new Command("paste", "Paste the files copied (or cut) in the Finder or in Explorer")
     {
-        destinationArgument, moveOption, copyOption, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption, parallelOption,
+        destinationArgument, moveOption, copyOption, verifyOption, hashOption, conflictOption, retriesOption, noFlushOption, flushNetworkOption, parallelOption, checksumFileOption,
     };
     command.Validators.Add(result =>
     {
@@ -187,6 +193,7 @@ async Task<CopyJobResult> RunTransferAsync(
             FlushToDisk = !parseResult.GetValue(noFlushOption),
             FlushOnNetworkShares = parseResult.GetValue(flushNetworkOption),
             ParallelFiles = parseResult.GetValue(parallelOption),
+            WriteChecksumFile = parseResult.GetValue(checksumFileOption),
         },
     };
 
@@ -224,6 +231,11 @@ static void PrintSummary(ConsoleUi ui, CopyJobResult result)
         $"{verified} verified, {result.SkippedCount} skipped, {result.FailedCount} failed" +
         (result.CancelledCount > 0 ? $", {result.CancelledCount} not processed" : string.Empty));
     ui.WriteLine($"Time {result.Elapsed:hh\\:mm\\:ss}, {ByteSize.Format(speed)}/s, checksum {HashAlgorithmNames.GetName(result.HashAlgorithm)}");
+    if (result.ChecksumFilePath is not null)
+    {
+        ui.WriteLine($"Checksum file {result.ChecksumFilePath}");
+    }
+
     if (result.WasCancelled)
     {
         ui.WriteLine("Cancelled.");
@@ -266,6 +278,54 @@ Command CreateHashCommand()
         }
 
         return exitCode;
+    });
+    return command;
+}
+
+Command CreateVerifyCommand()
+{
+    var fileArgument = new Argument<string>("checksum-file")
+    {
+        Description = "A checksum file (.sha256, .md5, .sfv…, as written by --checksum-file or sha256sum); its paths are relative to its folder",
+    };
+    var algorithmOption = new Option<HashAlgorithmKind?>("--hash")
+    {
+        Description = "Algorithm of the checksums, when the file name or contents do not tell it",
+        HelpName = "algorithm",
+        CustomParser = ParseHashAlgorithm,
+    };
+    var command = new Command("verify", "Read back the files listed in a checksum file and compare their checksums")
+    {
+        fileArgument, algorithmOption,
+    };
+    command.SetAction(async (parseResult, cancellationToken) =>
+    {
+        var algorithm = parseResult.GetValue(algorithmOption);
+        if (algorithm == HashAlgorithmKind.None)
+        {
+            Console.Error.WriteLine("Choose an algorithm other than 'none'");
+            return ExitFailures;
+        }
+
+        var ui = new ConsoleUi();
+        var job = new ChecksumCheckJob(parseResult.GetValue(fileArgument)!, PlatformFileSystem.Current, algorithm);
+        var result = await job.RunAsync(ui, cancellationToken: cancellationToken);
+        foreach (var file in result.Files.Where(f => f.Status == FileCopyStatus.Failed))
+        {
+            ui.WriteLine($"FAILED  {file.SourcePath}: {file.Error}");
+        }
+
+        ui.WriteLine(string.Empty);
+        ui.WriteLine(
+            $"{result.SucceededCount} OK, {result.FailedCount} failed" +
+            (result.CancelledCount > 0 ? $", {result.CancelledCount} not processed" : string.Empty));
+        ui.WriteLine($"Time {result.Elapsed:hh\\:mm\\:ss}, checksum {HashAlgorithmNames.GetName(result.HashAlgorithm)}");
+        if (result.WasCancelled)
+        {
+            ui.WriteLine("Cancelled.");
+        }
+
+        return ExitCode(result);
     });
     return command;
 }

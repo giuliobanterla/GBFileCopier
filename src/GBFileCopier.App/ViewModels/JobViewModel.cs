@@ -11,12 +11,12 @@ using GBFileCopier.Core.Copying;
 namespace GBFileCopier.App.ViewModels;
 
 /// <summary>
-/// One copy or move in the jobs list: it waits until no other job writes to its destination drive,
-/// runs, then keeps its results.
+/// One copy, move or checksum file verification in the jobs list: it waits until no other job uses
+/// its drive, runs, then keeps its results.
 /// </summary>
 public sealed partial class JobViewModel : ViewModelBase, IDisposable
 {
-    private readonly CopyRequest _request;
+    private readonly Func<IFileJob> _createJob;
     private readonly IUiServices _ui;
     private readonly DriveScheduler _scheduler;
     private readonly Func<FileConflict, CancellationToken, Task<ConflictAnswer>> _askConflict;
@@ -27,7 +27,7 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
     private readonly HashSet<FileCopyResult> _applied = new(ReferenceEqualityComparer.Instance);
     private readonly CancellationTokenSource _cancellation = new();
     private readonly SpeedMeter _speed = new();
-    private CopyJob? _job;
+    private IFileJob? _job;
     private ConflictAction? _conflictAnswerForAll;
 
     /// <param name="request">What to copy.</param>
@@ -43,16 +43,60 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         DriveScheduler scheduler,
         Func<FileConflict, CancellationToken, Task<ConflictAnswer>> askConflict,
         IReadOnlyList<string>? cutPaths = null)
+        : this(
+            () => new CopyJob(request, ui.Platform),
+            request.Mode,
+            string.Format(CultureInfo.CurrentCulture, request.Mode == CopyMode.Move ? Strings.JobMoveTo : Strings.JobCopyTo, request.Destination),
+            string.Format(CultureInfo.CurrentCulture, Strings.JobItems, request.Sources.Count),
+            driveKey,
+            ui,
+            scheduler,
+            askConflict,
+            cutPaths)
     {
-        _request = request;
+    }
+
+    private JobViewModel(
+        Func<IFileJob> createJob,
+        CopyMode mode,
+        string title,
+        string itemsText,
+        string driveKey,
+        IUiServices ui,
+        DriveScheduler scheduler,
+        Func<FileConflict, CancellationToken, Task<ConflictAnswer>> askConflict,
+        IReadOnlyList<string>? cutPaths)
+    {
+        ArgumentNullException.ThrowIfNull(ui);
+        _createJob = createJob;
+        Mode = mode;
         _ui = ui;
         _scheduler = scheduler;
         _askConflict = askConflict;
         _cutPaths = cutPaths;
         DriveKey = driveKey;
-        Title = string.Format(CultureInfo.CurrentCulture, request.Mode == CopyMode.Move ? Strings.JobMoveTo : Strings.JobCopyTo, request.Destination);
-        ItemsText = string.Format(CultureInfo.CurrentCulture, Strings.JobItems, request.Sources.Count);
+        Title = title;
+        ItemsText = itemsText;
         SelectedFilter = FilterOptions[0];
+    }
+
+    /// <summary>Reads back the files listed in a checksum file; it waits for the jobs writing to that drive.</summary>
+    public static JobViewModel ForChecksumFile(string checksumFilePath, string driveKey, IUiServices ui, DriveScheduler scheduler)
+    {
+        ArgumentNullException.ThrowIfNull(ui);
+        return new JobViewModel(
+            () => new ChecksumCheckJob(checksumFilePath, ui.Platform),
+            CopyMode.Copy,
+            string.Format(CultureInfo.CurrentCulture, Strings.JobVerify, checksumFilePath),
+            string.Empty,
+            driveKey,
+            ui,
+            scheduler,
+            (_, _) => Task.FromResult(new ConflictAnswer(ConflictAction.Skip, ApplyToAll: false)),
+            cutPaths: null)
+        {
+            IsVerification = true,
+        };
     }
 
     public string Title { get; }
@@ -61,7 +105,10 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
 
     public string DriveKey { get; }
 
-    public CopyMode Mode => _request.Mode;
+    public CopyMode Mode { get; }
+
+    /// <summary>Checks a checksum file instead of copying.</summary>
+    public bool IsVerification { get; private init; }
 
     /// <summary>Waiting or running: it can be cancelled.</summary>
     [ObservableProperty]
@@ -224,12 +271,10 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
             IsRunning = true;
             try
             {
-                _job = new CopyJob(_request, _ui.Platform)
-                {
-                    // From the copy threads: posted in order to the UI thread
-                    Planned = files => Dispatcher.UIThread.Post(() => OnPlanned(files)),
-                    FileFinished = result => Dispatcher.UIThread.Post(() => Apply(result)),
-                };
+                _job = _createJob();
+                // From the copy threads: posted in order to the UI thread
+                _job.Planned = files => Dispatcher.UIThread.Post(() => OnPlanned(files));
+                _job.FileFinished = result => Dispatcher.UIThread.Post(() => Apply(result));
                 // Created on the UI thread: reports from the copy threads are posted back to it
                 var progress = new Progress<CopyProgress>(OnProgress);
                 var result = await _job.RunAsync(progress, ResolveConflictAsync, token);
@@ -307,11 +352,13 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         SelectedFilter = FilterOptions.First(o => o.Filter == (ProblemCount > 0 ? JobFileFilter.Problems : JobFileFilter.All));
 
         var verified = result.Files.Count(f => f.Verified);
-        var parts = new List<string>
+        var parts = new List<string>();
+        if (!IsVerification)
         {
-            string.Format(CultureInfo.CurrentCulture, result.Mode == CopyMode.Move ? Strings.SummaryMoved : Strings.SummaryCopied,
-                result.SucceededCount, ByteSize.Format(result.CopiedBytes, CultureInfo.CurrentCulture)),
-        };
+            parts.Add(string.Format(CultureInfo.CurrentCulture, result.Mode == CopyMode.Move ? Strings.SummaryMoved : Strings.SummaryCopied,
+                result.SucceededCount, ByteSize.Format(result.CopiedBytes, CultureInfo.CurrentCulture)));
+        }
+
         void AddPart(int count, string format)
         {
             if (count > 0)
@@ -324,6 +371,10 @@ public sealed partial class JobViewModel : ViewModelBase, IDisposable
         AddPart(result.SkippedCount, Strings.SummarySkipped);
         AddPart(result.FailedCount, Strings.SummaryFailed);
         AddPart(result.CancelledCount, Strings.SummaryNotProcessed);
+        if (result.ChecksumFilePath is { } checksumFile)
+        {
+            parts.Add(string.Format(CultureInfo.CurrentCulture, Strings.SummaryChecksumFile, Path.GetFileName(checksumFile)));
+        }
         Summary = string.Join(", ", parts) + "  ·  " + FormatDuration(result.Elapsed)
             + (result.Warning is null ? string.Empty : "  ·  " + result.Warning);
 

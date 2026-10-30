@@ -56,6 +56,12 @@ public sealed record CopyOptions
     /// <summary>After copying, read the destination back and compare its checksum with the source's.</summary>
     public bool Verify { get; init; }
 
+    /// <summary>
+    /// After a copy with no failures, save the checksums of the files copied into a checksum file in
+    /// the destination folder ("Photos.sha256", ".md5", ".sfv"…), with <see cref="EffectiveHashAlgorithm"/>.
+    /// </summary>
+    public bool WriteChecksumFile { get; init; }
+
     public ConflictPolicy ConflictPolicy { get; init; } = ConflictPolicy.Ask;
 
     /// <summary>Copy the last write and creation times of files and folders.</summary>
@@ -105,9 +111,9 @@ public sealed record CopyOptions
     /// <summary>Files from this size on are copied one at a time: one big file already keeps the disk busy.</summary>
     public long SmallFileLimit { get; init; } = 16 * 1024 * 1024;
 
-    /// <summary>The algorithm actually used: verification needs one even if none was chosen.</summary>
+    /// <summary>The algorithm actually used: verification and the checksum file need one even if none was chosen.</summary>
     public HashAlgorithmKind EffectiveHashAlgorithm =>
-        HashAlgorithm == HashAlgorithmKind.None && Verify ? HashAlgorithmKind.XxHash3 : HashAlgorithm;
+        HashAlgorithm == HashAlgorithmKind.None && (Verify || WriteChecksumFile) ? HashAlgorithmKind.XxHash3 : HashAlgorithm;
 
     internal void Validate()
     {

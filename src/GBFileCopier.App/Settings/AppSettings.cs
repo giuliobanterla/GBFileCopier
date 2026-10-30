@@ -24,6 +24,9 @@ public sealed record AppSettings
 
     public bool Verify { get; init; }
 
+    /// <summary>Save a checksum file in the destination after each copy.</summary>
+    public bool WriteChecksumFile { get; init; }
+
     public HashAlgorithmKind HashAlgorithm { get; init; } = HashAlgorithmKind.XxHash3;
 
     public ConflictPolicy ConflictPolicy { get; init; } = ConflictPolicy.Ask;

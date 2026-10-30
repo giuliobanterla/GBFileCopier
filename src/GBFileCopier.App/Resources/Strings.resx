@@ -46,6 +46,12 @@
   <data name="VerifyTip" xml:space="preserve">
     <value>Read every copy back from the disk and compare its checksum with the original</value>
   </data>
+  <data name="WriteChecksumFile" xml:space="preserve">
+    <value>Save checksum file</value>
+  </data>
+  <data name="WriteChecksumFileTip" xml:space="preserve">
+    <value>At the end of a copy without errors, save the checksums of the files in the destination (Photos.sha256, .md5, .sfv…), to verify them later with GBFileCopier, sha256sum or TeraCopy</value>
+  </data>
   <data name="Checksum" xml:space="preserve">
     <value>Checksum</value>
   </data>
@@ -78,6 +84,9 @@
   </data>
   <data name="JobMoveTo" xml:space="preserve">
     <value>Move to {0}</value>
+  </data>
+  <data name="JobVerify" xml:space="preserve">
+    <value>Verify {0}</value>
   </data>
   <data name="JobItems" xml:space="preserve">
     <value>Items: {0}</value>
@@ -136,6 +145,12 @@
   <data name="PickFilesTitle" xml:space="preserve">
     <value>Add files</value>
   </data>
+  <data name="PickChecksumFileTitle" xml:space="preserve">
+    <value>Choose a checksum file</value>
+  </data>
+  <data name="ChecksumFilesFilter" xml:space="preserve">
+    <value>Checksum files</value>
+  </data>
   <data name="PickFoldersTitle" xml:space="preserve">
     <value>Add folders</value>
   </data>
@@ -186,6 +201,9 @@
   </data>
   <data name="SummaryCopied" xml:space="preserve">
     <value>Copied: {0} ({1})</value>
+  </data>
+  <data name="SummaryChecksumFile" xml:space="preserve">
+    <value>checksums in {0}</value>
   </data>
   <data name="SummaryMoved" xml:space="preserve">
     <value>Moved: {0} ({1})</value>
@@ -285,6 +303,9 @@
   </data>
   <data name="MenuPasteFilesToMove" xml:space="preserve">
     <value>Paste Files to Move</value>
+  </data>
+  <data name="MenuVerifyChecksumFile" xml:space="preserve">
+    <value>Verify Checksum File…</value>
   </data>
   <data name="MenuSettings" xml:space="preserve">
     <value>Settings…</value>

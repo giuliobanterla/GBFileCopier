@@ -55,6 +55,8 @@ public partial class MainWindow : Window
             new NativeMenuItemSeparator(),
             Item(Strings.MenuPasteFiles, () => ViewModel?.Paste(move: false)),
             Item(Strings.MenuPasteFilesToMove, () => ViewModel?.Paste(move: true)),
+            new NativeMenuItemSeparator(),
+            Item(Strings.MenuVerifyChecksumFile, () => ViewModel?.VerifyChecksumFileCommand.Execute(null)),
         };
         var help = new NativeMenu
         {

@@ -67,8 +67,11 @@ public sealed record CopyJobResult
     /// <summary>Bytes written to the destination by successful copies.</summary>
     public long CopiedBytes { get; init; }
 
-    /// <summary>A problem with the whole job rather than one file: the final flush to disk failed.</summary>
+    /// <summary>A problem with the whole job rather than one file: the final flush to disk failed, or the checksum file could not be written.</summary>
     public string? Warning { get; init; }
+
+    /// <summary>The checksum file written at the end (<see cref="CopyOptions.WriteChecksumFile"/>); null if none.</summary>
+    public string? ChecksumFilePath { get; init; }
 
     public int SucceededCount => Files.Count(f => f.Status == FileCopyStatus.Succeeded);
 
