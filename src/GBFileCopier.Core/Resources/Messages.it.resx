@@ -55,4 +55,19 @@
   <data name="CannotFlushToDisk" xml:space="preserve">
     <value>Impossibile scrivere il file su disco</value>
   </data>
+  <data name="ChecksumFileUnknownAlgorithm" xml:space="preserve">
+    <value>L'algoritmo di checksum non è noto: dai al file l'estensione .sha256, .md5, .sfv…</value>
+  </data>
+  <data name="ChecksumFileEmpty" xml:space="preserve">
+    <value>Il file non contiene checksum {0}</value>
+  </data>
+  <data name="ChecksumFileMissing" xml:space="preserve">
+    <value>Il file non esiste</value>
+  </data>
+  <data name="ChecksumMismatch" xml:space="preserve">
+    <value>Il checksum non corrisponde: atteso {0}, trovato {1}</value>
+  </data>
+  <data name="ChecksumFileNotWritten" xml:space="preserve">
+    <value>Impossibile scrivere il file di checksum: {0}</value>
+  </data>
 </root>

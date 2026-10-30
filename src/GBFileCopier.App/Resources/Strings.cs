@@ -57,6 +57,12 @@ public static class Strings
     /// <summary>Read every copy back from the disk and compare its checksum with the original</summary>
     public static string VerifyTip => Get();
 
+    /// <summary>Save checksum file</summary>
+    public static string WriteChecksumFile => Get();
+
+    /// <summary>At the end of a copy without errors, save the checksums of the files in the destination (Photos.sha256, .md5, .sfv…), to verify them later with GBFileCopier, sha256sum or TeraCopy</summary>
+    public static string WriteChecksumFileTip => Get();
+
     /// <summary>Checksum</summary>
     public static string Checksum => Get();
 
@@ -89,6 +95,9 @@ public static class Strings
 
     /// <summary>Move to {0}</summary>
     public static string JobMoveTo => Get();
+
+    /// <summary>Verify {0}</summary>
+    public static string JobVerify => Get();
 
     /// <summary>Items: {0}</summary>
     public static string JobItems => Get();
@@ -147,6 +156,12 @@ public static class Strings
     /// <summary>Add files</summary>
     public static string PickFilesTitle => Get();
 
+    /// <summary>Choose a checksum file</summary>
+    public static string PickChecksumFileTitle => Get();
+
+    /// <summary>Checksum files</summary>
+    public static string ChecksumFilesFilter => Get();
+
     /// <summary>Add folders</summary>
     public static string PickFoldersTitle => Get();
 
@@ -197,6 +212,9 @@ public static class Strings
 
     /// <summary>Copied: {0} ({1})</summary>
     public static string SummaryCopied => Get();
+
+    /// <summary>checksums in {0}</summary>
+    public static string SummaryChecksumFile => Get();
 
     /// <summary>Moved: {0} ({1})</summary>
     public static string SummaryMoved => Get();
@@ -296,6 +314,9 @@ public static class Strings
 
     /// <summary>Paste Files to Move</summary>
     public static string MenuPasteFilesToMove => Get();
+
+    /// <summary>Verify Checksum File…</summary>
+    public static string MenuVerifyChecksumFile => Get();
 
     /// <summary>Settings…</summary>
     public static string MenuSettings => Get();

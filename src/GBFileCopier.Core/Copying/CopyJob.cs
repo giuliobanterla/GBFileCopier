@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using GBFileCopier.Core.Hashing;
 using GBFileCopier.Core.Resources;
 using Microsoft.Win32.SafeHandles;
@@ -11,7 +12,7 @@ namespace GBFileCopier.Core.Copying;
 /// never leaves a partial file and never damages an existing one. Errors on one file do not
 /// stop the others; they are collected in the result.
 /// </summary>
-public sealed class CopyJob
+public sealed class CopyJob : IFileJob
 {
     private const string TempSuffix = ".gbcopy-tmp";
 
@@ -235,8 +236,98 @@ public sealed class CopyJob
             FlushAwaitingFiles();
         }
 
+        var all = AllResults();
+        string? checksumFile = null;
+        if (Options.WriteChecksumFile && cancelled == 0 && all.TrueForAll(r => r.Status != FileCopyStatus.Failed))
+        {
+            checksumFile = await WriteChecksumFileAsync(fileResults, tracker, cancellationToken);
+        }
+
         tracker.Finish();
-        return CreateResult(AllResults(), tracker.Elapsed, cancelled != 0);
+        return CreateResult(all, tracker.Elapsed, cancelled != 0) with { ChecksumFilePath = checksumFile };
+    }
+
+    /// <summary>
+    /// Saves the checksums of the files copied next to what was copied: "Photos.sha256" for a folder
+    /// Photos, "IMG.jpg.sha256" for a single file, "checksums.sha256" for several sources; a free name
+    /// if it exists. The paths in it are relative to the destination folder. Problems become the job's warning.
+    /// </summary>
+    private async Task<string?> WriteChecksumFileAsync(FileCopyResult?[] fileResults, ProgressTracker tracker, CancellationToken cancellationToken)
+    {
+        var algorithm = Options.EffectiveHashAlgorithm;
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Request.Destination));
+        string? target = null;
+        try
+        {
+            // Moved by a rename on the same volume: the data was never read, so it is hashed now, with progress
+            tracker.AddToTotal(fileResults.Where(r => r is { Status: FileCopyStatus.Succeeded, Kind: CopyItemKind.File, Hash: null }).Sum(r => r!.Length));
+            var entries = new List<ChecksumEntry>();
+            for (var slot = 0; slot < fileResults.Length; slot++)
+            {
+                if (fileResults[slot] is not { Status: FileCopyStatus.Succeeded, Kind: CopyItemKind.File } result)
+                {
+                    continue;
+                }
+
+                var hash = result.Hash;
+                if (hash is null)
+                {
+                    tracker.StartFile(result.DestinationPath, CopyPhase.Verifying);
+                    hash = StreamingHasher.ToHex(await FilePipeline.HashFileAsync(
+                        result.DestinationPath, algorithm, Options.BufferSize, _platform, _pause, tracker.AddBytes, cancellationToken));
+                }
+
+                entries.Add(new ChecksumEntry(Path.GetRelativePath(root, result.DestinationPath).Replace(Path.DirectorySeparatorChar, '/'), hash));
+            }
+
+            if (entries.Count == 0)
+            {
+                return null;
+            }
+
+            var name = Request.Sources.Count == 1
+                ? Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(Request.Sources[0])))
+                : "checksums";
+            target = Path.Combine(root, name + ChecksumFile.ExtensionFor(algorithm));
+            if (PathExists(target))
+            {
+                target = GetAvailableName(target);
+            }
+
+            // Written aside and renamed: never a half-written checksum file
+            var temp = GetTempPath(target);
+            try
+            {
+                await using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    var bytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(ChecksumFile.Format(algorithm, entries));
+                    await stream.WriteAsync(bytes, cancellationToken);
+                    await stream.FlushAsync(cancellationToken);
+                    if (FlushesEachFile)
+                    {
+                        _platform.FlushToDisk(stream.SafeFileHandle);
+                    }
+                }
+
+                File.Move(temp, target);
+            }
+            finally
+            {
+                TryDeleteFile(temp);
+            }
+
+            return target;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            var warning = string.Format(CultureInfo.CurrentCulture, Messages.ChecksumFileNotWritten, ex.Message);
+            _flushWarning = _flushWarning is null ? warning : _flushWarning + "; " + warning;
+            return null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
     }
 
     private bool IsSmall(CopyItem item) => item.Kind == CopyItemKind.SymbolicLink || item.Length < Options.SmallFileLimit;

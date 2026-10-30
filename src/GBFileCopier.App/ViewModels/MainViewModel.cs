@@ -30,6 +30,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         _settings = settingsStore.Load();
         Destination = _settings.LastDestination;
         Verify = _settings.Verify;
+        WriteChecksumFile = _settings.WriteChecksumFile;
         SelectedHash = HashOptions.FirstOrDefault(o => o.Kind == _settings.HashAlgorithm) ?? HashOptions[0];
         SelectedConflict = ConflictOptions.FirstOrDefault(o => o.Policy == _settings.ConflictPolicy) ?? ConflictOptions[0];
         Sources.CollectionChanged += (_, _) =>
@@ -64,6 +65,10 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     public partial bool Verify { get; set; }
+
+    /// <summary>Save a checksum file in the destination after each copy.</summary>
+    [ObservableProperty]
+    public partial bool WriteChecksumFile { get; set; }
 
     [ObservableProperty]
     public partial HashOption SelectedHash { get; set; }
@@ -115,6 +120,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         {
             LastDestination = Destination.Trim(),
             Verify = Verify,
+            WriteChecksumFile = WriteChecksumFile,
             HashAlgorithm = SelectedHash.Kind,
             ConflictPolicy = SelectedConflict.Policy,
             WindowWidth = windowWidth ?? _settings.WindowWidth,
@@ -299,12 +305,40 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             {
                 HashAlgorithm = SelectedHash.Kind,
                 Verify = Verify,
+                WriteChecksumFile = WriteChecksumFile,
                 ConflictPolicy = SelectedConflict.Policy,
                 FlushOnNetworkShares = _settingsStore.Load().FlushOnNetworkShares, // may have changed in Settings meanwhile
             },
         };
 
-        var job = new JobViewModel(request, DestinationDrive.KeyFor(destination), _ui, _scheduler, AskConflictAsync, cutPaths);
+        return Enqueue(new JobViewModel(request, DestinationDrive.KeyFor(destination), _ui, _scheduler, AskConflictAsync, cutPaths));
+    }
+
+    /// <summary>Asks for a checksum file and adds a job that verifies the files listed in it.</summary>
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private async Task VerifyChecksumFileAsync()
+    {
+        if (await _ui.PickChecksumFileAsync() is { } path)
+        {
+            await VerifyChecksumFile(path);
+        }
+    }
+
+    /// <summary>Adds a job that reads back the files listed in <paramref name="checksumFilePath"/>; completes when it is over.</summary>
+    public Task VerifyChecksumFile(string checksumFilePath)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(checksumFilePath);
+        if (_closing)
+        {
+            return Task.CompletedTask;
+        }
+
+        var path = Path.GetFullPath(checksumFilePath);
+        return Enqueue(JobViewModel.ForChecksumFile(path, DestinationDrive.KeyFor(Path.GetDirectoryName(path)!), _ui, _scheduler));
+    }
+
+    private Task Enqueue(JobViewModel job)
+    {
         job.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(JobViewModel.IsActive) or nameof(JobViewModel.IsFinished))

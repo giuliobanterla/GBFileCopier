@@ -66,6 +66,21 @@ public static class Messages
     /// <summary>Cannot flush the file to disk</summary>
     public static string CannotFlushToDisk => Get();
 
+    /// <summary>The checksum algorithm is unknown: name the file .sha256, .md5, .sfv…</summary>
+    public static string ChecksumFileUnknownAlgorithm => Get();
+
+    /// <summary>The file contains no {0} checksums</summary>
+    public static string ChecksumFileEmpty => Get();
+
+    /// <summary>The file does not exist</summary>
+    public static string ChecksumFileMissing => Get();
+
+    /// <summary>The checksum does not match: expected {0}, found {1}</summary>
+    public static string ChecksumMismatch => Get();
+
+    /// <summary>The checksum file could not be written: {0}</summary>
+    public static string ChecksumFileNotWritten => Get();
+
     private static string Get([CallerMemberName] string name = "") =>
         Resources.GetString(name, CultureInfo.CurrentUICulture) ?? name;
 }

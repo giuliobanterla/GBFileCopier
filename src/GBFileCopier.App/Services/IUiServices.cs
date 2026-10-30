@@ -18,6 +18,9 @@ public interface IUiServices
 
     Task<IReadOnlyList<string>> PickFoldersAsync(string title, bool allowMultiple);
 
+    /// <summary>A .sha256, .md5, .sfv… file to verify; null if none was chosen.</summary>
+    Task<string?> PickChecksumFileAsync();
+
     /// <summary>Asks what to do with a file that already exists. Called on the UI thread.</summary>
     Task<ConflictAnswer> AskConflictAsync(FileConflict conflict);
 

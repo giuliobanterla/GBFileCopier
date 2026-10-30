@@ -109,6 +109,54 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task Copy_WithChecksumFile_SavesItAndNamesItInTheSummary()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.AddSources([_temp.CreateFile("src/a.bin")]);
+        viewModel.Destination = _temp.Combine("dst");
+        viewModel.WriteChecksumFile = true;
+
+        await viewModel.CopyCommand.ExecuteAsync(null);
+
+        Assert.True(File.Exists(_temp.Combine("dst", "a.bin.xxh3")));
+        Assert.Contains("checksums in a.bin.xxh3", Assert.Single(viewModel.Jobs).Summary, StringComparison.Ordinal);
+        Assert.True(_settings.Load().WriteChecksumFile); // remembered for the next time
+    }
+
+    [AvaloniaFact]
+    public async Task VerifyChecksumFile_ChecksEveryFileAndShowsTheProblems()
+    {
+        _temp.CreateFile("Photos/ok.txt", text: "hello\n");
+        _temp.CreateFile("Photos/changed.txt", text: "hello!\n");
+        const string Hash = "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03";
+        _ui.ChecksumFile = _temp.Combine("Photos.sha256");
+        File.WriteAllText(_ui.ChecksumFile, $"{Hash}  Photos/ok.txt\n{Hash}  Photos/changed.txt\n");
+        var viewModel = CreateViewModel();
+
+        await viewModel.VerifyChecksumFileCommand.ExecuteAsync(null);
+
+        var job = Assert.Single(viewModel.Jobs);
+        Assert.True(job.IsVerification);
+        Assert.Equal("Verify " + _ui.ChecksumFile, job.Title);
+        Assert.Equal("Finished with errors", job.StatusText);
+        Assert.StartsWith("verified: 1, failed: 1", job.Summary, StringComparison.Ordinal);
+        Assert.Equal(JobFileFilter.Problems, job.SelectedFilter.Filter);
+        var problem = Assert.Single(job.Files);
+        Assert.Equal("changed.txt", problem.Name);
+        Assert.Contains("does not match", problem.Message, StringComparison.Ordinal);
+    }
+
+    [AvaloniaFact]
+    public async Task VerifyChecksumFile_NothingChosen_NoJob()
+    {
+        var viewModel = CreateViewModel();
+
+        await viewModel.VerifyChecksumFileCommand.ExecuteAsync(null);
+
+        Assert.Empty(viewModel.Jobs);
+    }
+
+    [AvaloniaFact]
     public async Task Copy_RunsTheJobAndShowsTheSummary()
     {
         var viewModel = CreateViewModel();

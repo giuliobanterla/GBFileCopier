@@ -41,6 +41,7 @@ internal sealed class ProgressTracker(IProgress<CopyProgress>? progress, long to
     private int _completedFiles;
     private CopyPhase _phase = CopyPhase.Copying;
     private string? _currentFile;
+    private long _totalBytes = totalBytes;
 
     public TimeSpan Elapsed => _stopwatch.Elapsed;
 
@@ -64,6 +65,9 @@ internal sealed class ProgressTracker(IProgress<CopyProgress>? progress, long to
 
         Report(force: true);
     }
+
+    /// <summary>More work found along the way, for example files to hash after they were moved.</summary>
+    public void AddToTotal(long bytes) => Interlocked.Add(ref _totalBytes, bytes);
 
     public void AddBytes(long bytes)
     {
@@ -109,7 +113,7 @@ internal sealed class ProgressTracker(IProgress<CopyProgress>? progress, long to
                 _phase,
                 _currentFile,
                 Interlocked.Read(ref _processedBytes),
-                totalBytes,
+                Interlocked.Read(ref _totalBytes),
                 Volatile.Read(ref _completedFiles),
                 totalFiles,
                 now);

@@ -55,4 +55,19 @@
   <data name="CannotFlushToDisk" xml:space="preserve">
     <value>Cannot flush the file to disk</value>
   </data>
+  <data name="ChecksumFileUnknownAlgorithm" xml:space="preserve">
+    <value>The checksum algorithm is unknown: name the file .sha256, .md5, .sfv…</value>
+  </data>
+  <data name="ChecksumFileEmpty" xml:space="preserve">
+    <value>The file contains no {0} checksums</value>
+  </data>
+  <data name="ChecksumFileMissing" xml:space="preserve">
+    <value>The file does not exist</value>
+  </data>
+  <data name="ChecksumMismatch" xml:space="preserve">
+    <value>The checksum does not match: expected {0}, found {1}</value>
+  </data>
+  <data name="ChecksumFileNotWritten" xml:space="preserve">
+    <value>The checksum file could not be written: {0}</value>
+  </data>
 </root>

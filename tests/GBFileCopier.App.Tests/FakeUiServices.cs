@@ -20,6 +20,11 @@ internal sealed class FakeUiServices : IUiServices
 
     public Task<IReadOnlyList<string>> PickFoldersAsync(string title, bool allowMultiple) => Task.FromResult<IReadOnlyList<string>>([]);
 
+    /// <summary>What the checksum file picker returns.</summary>
+    public string? ChecksumFile { get; set; }
+
+    public Task<string?> PickChecksumFileAsync() => Task.FromResult(ChecksumFile);
+
     /// <summary>Completed by the test to let a conflict dialog close; until then the job is held.</summary>
     public TaskCompletionSource? ConflictGate { get; set; }
 

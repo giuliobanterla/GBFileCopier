@@ -98,6 +98,8 @@
       <WrapPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" ItemSpacing="16" LineSpacing="8">
         <CheckBox Content="{x:Static res:Strings.VerifyAfterCopying}" IsChecked="{Binding Verify}"
                   ToolTip.Tip="{x:Static res:Strings.VerifyTip}" />
+        <CheckBox Content="{x:Static res:Strings.WriteChecksumFile}" IsChecked="{Binding WriteChecksumFile}"
+                  ToolTip.Tip="{x:Static res:Strings.WriteChecksumFileTip}" />
         <StackPanel Orientation="Horizontal" Spacing="6">
           <TextBlock Text="{x:Static res:Strings.Checksum}" VerticalAlignment="Center" />
           <ComboBox ItemsSource="{Binding HashOptions}" SelectedItem="{Binding SelectedHash}" MinWidth="150">

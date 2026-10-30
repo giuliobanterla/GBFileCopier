@@ -46,6 +46,12 @@
   <data name="VerifyTip" xml:space="preserve">
     <value>Rilegge ogni copia dal disco e ne confronta il checksum con l'originale</value>
   </data>
+  <data name="WriteChecksumFile" xml:space="preserve">
+    <value>Salva file di checksum</value>
+  </data>
+  <data name="WriteChecksumFileTip" xml:space="preserve">
+    <value>Alla fine di una copia senza errori, salva i checksum dei file nella destinazione (Foto.sha256, .md5, .sfv…), da verificare in seguito con GBFileCopier, sha256sum o TeraCopy</value>
+  </data>
   <data name="Checksum" xml:space="preserve">
     <value>Checksum</value>
   </data>
@@ -78,6 +84,9 @@
   </data>
   <data name="JobMoveTo" xml:space="preserve">
     <value>Sposta in {0}</value>
+  </data>
+  <data name="JobVerify" xml:space="preserve">
+    <value>Verifica di {0}</value>
   </data>
   <data name="JobItems" xml:space="preserve">
     <value>Elementi: {0}</value>
@@ -136,6 +145,12 @@
   <data name="PickFilesTitle" xml:space="preserve">
     <value>Aggiungi file</value>
   </data>
+  <data name="PickChecksumFileTitle" xml:space="preserve">
+    <value>Scegli un file di checksum</value>
+  </data>
+  <data name="ChecksumFilesFilter" xml:space="preserve">
+    <value>File di checksum</value>
+  </data>
   <data name="PickFoldersTitle" xml:space="preserve">
     <value>Aggiungi cartelle</value>
   </data>
@@ -186,6 +201,9 @@
   </data>
   <data name="SummaryCopied" xml:space="preserve">
     <value>Copiati: {0} ({1})</value>
+  </data>
+  <data name="SummaryChecksumFile" xml:space="preserve">
+    <value>checksum in {0}</value>
   </data>
   <data name="SummaryMoved" xml:space="preserve">
     <value>Spostati: {0} ({1})</value>
@@ -285,6 +303,9 @@
   </data>
   <data name="MenuPasteFilesToMove" xml:space="preserve">
     <value>Incolla file da spostare</value>
+  </data>
+  <data name="MenuVerifyChecksumFile" xml:space="preserve">
+    <value>Verifica file di checksum…</value>
   </data>
   <data name="MenuSettings" xml:space="preserve">
     <value>Impostazioni…</value>
