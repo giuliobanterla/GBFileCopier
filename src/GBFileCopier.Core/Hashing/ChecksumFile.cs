@@ -99,17 +99,36 @@ public static class ChecksumFile
 
     /// <summary>
     /// Reads a checksum file. The algorithm is <paramref name="algorithm"/> if given, otherwise the one
-    /// of the BSD tags or of the extension.
+    /// of the BSD tags, of the extension, of a name like SHA256SUMS, or the only one whose checksums
+    /// have the length found. UTF-8, or Latin-1 for lists of older Windows tools that are not UTF-8.
     /// </summary>
     /// <exception cref="InvalidDataException">No algorithm, or no valid line.</exception>
-    public static ChecksumList Read(string path, HashAlgorithmKind? algorithm = null) =>
-        Parse(File.ReadAllText(path, Encoding.UTF8), Path.GetExtension(path), algorithm);
+    public static ChecksumList Read(string path, HashAlgorithmKind? algorithm = null)
+    {
+        var bytes = File.ReadAllBytes(path);
+        string text;
+        try
+        {
+            text = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true).GetString(bytes);
+        }
+        catch (DecoderFallbackException)
+        {
+            text = Encoding.Latin1.GetString(bytes);
+        }
+
+        return Parse(text, Path.GetFileName(path), algorithm);
+    }
 
     /// <inheritdoc cref="Read"/>
-    public static ChecksumList Parse(string text, string extension, HashAlgorithmKind? algorithm = null)
+    /// <param name="text">The contents of the file.</param>
+    /// <param name="fileName">Its name, or just its extension.</param>
+    /// <param name="algorithm">Overrides what the name and the contents tell.</param>
+    public static ChecksumList Parse(string text, string fileName, HashAlgorithmKind? algorithm = null)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var fromExtension = TryGetAlgorithm("x" + extension, out var byExtension) ? byExtension : (HashAlgorithmKind?)null;
+        ArgumentNullException.ThrowIfNull(fileName);
+        var extension = Path.GetExtension(fileName);
+        var fromName = TryGetAlgorithm(fileName, out var byName) || TryGetSumsAlgorithm(fileName, out byName) ? byName : (HashAlgorithmKind?)null;
         var isSfv = string.Equals(extension, ".sfv", StringComparison.OrdinalIgnoreCase);
         var entries = new List<ChecksumEntry>();
         HashAlgorithmKind? tagged = null;
@@ -117,7 +136,8 @@ public static class ChecksumFile
         foreach (var rawLine in text.TrimStart('﻿').Split('\n'))
         {
             var line = rawLine.TrimEnd('\r');
-            if (line.Length == 0 || line[0] is ';' or '#')
+            // In SFV a line starts with the file name: only ';' starts a comment there
+            if (line.Length == 0 || line[0] == ';' || (line[0] == '#' && !isSfv))
             {
                 continue;
             }
@@ -136,7 +156,7 @@ public static class ChecksumFile
             }
         }
 
-        var kind = algorithm ?? tagged ?? fromExtension
+        var kind = algorithm ?? tagged ?? fromName ?? ByLength(entries)
             ?? throw new InvalidDataException(Messages.ChecksumFileUnknownAlgorithm);
         var hexLength = HexLength(kind);
         entries.RemoveAll(e => e.Hash.Length != hexLength);
@@ -146,6 +166,30 @@ public static class ChecksumFile
         }
 
         return new ChecksumList(kind, entries);
+    }
+
+    // MD5SUMS, SHA1SUMS, SHA256SUMS, SHA512SUMS: the usual names of lists on Linux and in releases
+    private static bool TryGetSumsAlgorithm(string fileName, out HashAlgorithmKind algorithm)
+    {
+        var name = Path.GetFileNameWithoutExtension(fileName);
+        algorithm = HashAlgorithmKind.None;
+        return name.EndsWith("SUMS", StringComparison.OrdinalIgnoreCase)
+            && HashAlgorithmNames.TryParse(name[..^4], out algorithm) && algorithm != HashAlgorithmKind.None;
+    }
+
+    /// <summary>The algorithm when the length of the checksums tells it: 16 or 32 digits fit more than one.</summary>
+    private static HashAlgorithmKind? ByLength(List<ChecksumEntry> entries)
+    {
+        var lengths = entries.Select(e => e.Hash.Length).Distinct().ToList();
+        return lengths is [var length] && length is 8 or 40 or 64 or 128
+            ? length switch
+            {
+                8 => HashAlgorithmKind.Crc32,
+                40 => HashAlgorithmKind.Sha1,
+                64 => HashAlgorithmKind.Sha256,
+                _ => HashAlgorithmKind.Sha512,
+            }
+            : null;
     }
 
     // "SHA256 (dir/name) = 0123…"
@@ -186,7 +230,13 @@ public static class ChecksumFile
             return false;
         }
 
+        // xxhsum writes XXH3 checksums as "XXH3_0123…"
         var hash = line[start..space];
+        if (hash.StartsWith("XXH3_", StringComparison.Ordinal))
+        {
+            hash = hash[5..];
+        }
+
         var path = line[(space + (line[space + 1] is ' ' or '*' ? 2 : 1))..];
         if (!IsHex(hash) || path.Length == 0)
         {

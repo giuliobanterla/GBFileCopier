@@ -97,7 +97,7 @@ Command CreateTransferCommand(string name, CopyMode mode, string description)
     {
         var paths = parseResult.GetValue(pathsArgument)!;
         var result = await RunTransferAsync(parseResult, paths[..^1], paths[^1], mode, cancellationToken);
-        return ExitCode(result);
+        return ExitCode(result, parseResult.GetValue(checksumFileOption));
     });
     return command;
 }
@@ -159,14 +159,16 @@ Command CreatePasteCommand()
             FileClipboard.Clear();
         }
 
-        return ExitCode(result);
+        return ExitCode(result, parseResult.GetValue(checksumFileOption));
     });
     return command;
 }
 
-static int ExitCode(CopyJobResult result) =>
+// A checksum file that was asked for and could not be written is a failure too: a script relies on it
+static int ExitCode(CopyJobResult result, bool checksumFileAsked = false) =>
     result.WasCancelled ? ExitCancelled
     : result.FailedCount > 0 ? ExitFailures
+    : checksumFileAsked && result.ChecksumFilePath is null && result.Warning is not null ? ExitFailures
     : 0;
 
 async Task<CopyJobResult> RunTransferAsync(

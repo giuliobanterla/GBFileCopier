@@ -56,7 +56,7 @@
     <value>Cannot flush the file to disk</value>
   </data>
   <data name="ChecksumFileUnknownAlgorithm" xml:space="preserve">
-    <value>The checksum algorithm is unknown: name the file .sha256, .md5, .sfv… or choose the algorithm</value>
+    <value>The checksum algorithm is unknown: name the file .sha256, .md5, .sfv…</value>
   </data>
   <data name="ChecksumFileEmpty" xml:space="preserve">
     <value>The file contains no {0} checksums</value>

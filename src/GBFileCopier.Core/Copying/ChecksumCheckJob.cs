@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using GBFileCopier.Core.Hashing;
 using GBFileCopier.Core.Resources;
 
@@ -73,7 +74,7 @@ public sealed class ChecksumCheckJob : IFileJob
         }
 
         var folder = Path.GetDirectoryName(ChecksumFilePath)!;
-        var files = list.Entries.Select(e => (Entry: e, Path: FullPath(folder, e.Path))).ToList();
+        var files = list.Entries.Select(e => (Entry: e, Path: Locate(folder, e.Path))).ToList();
         var lengths = files.Select(f => LengthOf(f.Path)).ToList();
         Planned?.Invoke([.. files.Select((f, i) => new PlannedFile(CopyItemKind.File, f.Path, f.Path, lengths[i]))]);
 
@@ -139,9 +140,41 @@ public sealed class ChecksumCheckJob : IFileJob
         WasCancelled = wasCancelled,
     };
 
-    /// <summary>A path of the list, relative to the checksum file's folder unless absolute; '/' and, on Windows, '\' separate folders.</summary>
-    internal static string FullPath(string folder, string path) =>
-        Path.GetFullPath(Path.Combine(folder, path.Replace('/', Path.DirectorySeparatorChar)));
+    /// <summary>
+    /// The file a path of the list stands for, relative to the checksum file's folder unless absolute.
+    /// '/' separates folders; so does '\' on Windows, and elsewhere too when no file is named with the
+    /// '\' (lists made on Windows). Names are looked up as written, then in the other Unicode
+    /// normalization: a list made on a Mac can have "e" + accent where NTFS has "é", and NTFS does not
+    /// treat them as the same name. If none exists, the path as written.
+    /// </summary>
+    internal static string Locate(string folder, string path)
+    {
+        string[] spellings = OperatingSystem.IsWindows() || !path.Contains('\\', StringComparison.Ordinal) ? [path] : [path, path.Replace('\\', '/')];
+        NormalizationForm?[] forms = [null, NormalizationForm.FormC, NormalizationForm.FormD];
+        string? first = null;
+        foreach (var spelling in spellings)
+        {
+            foreach (var form in forms)
+            {
+                try
+                {
+                    var name = form is { } f ? spelling.Normalize(f) : spelling;
+                    var candidate = Path.GetFullPath(Path.Combine(folder, name.Replace('/', Path.DirectorySeparatorChar)));
+                    first ??= candidate;
+                    if (File.Exists(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+                catch (ArgumentException)
+                {
+                    // Not a valid path here (a NUL character, an unpaired surrogate): reported as missing
+                }
+            }
+        }
+
+        return first ?? Path.Combine(folder, path);
+    }
 
     private static long LengthOf(string path)
     {

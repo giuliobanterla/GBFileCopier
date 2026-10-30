@@ -1,3 +1,4 @@
+using System.Text;
 using GBFileCopier.Core.Copying;
 using GBFileCopier.Core.Hashing;
 using GBFileCopier.Tests;
@@ -76,10 +77,70 @@ public sealed class ChecksumFileTests : IDisposable
     [Fact]
     public void Parse_UnknownAlgorithm_IsAnError()
     {
-        var error = Assert.Throws<InvalidDataException>(() => ChecksumFile.Parse($"{Sha1}  a.txt\n", ".txt"));
+        // 32 digits: MD5 or xxHash128
+        var line = $"{new string('a', 32)}  a.txt\n";
+        var error = Assert.Throws<InvalidDataException>(() => ChecksumFile.Parse(line, ".txt"));
 
         Assert.Contains("algorithm is unknown", error.Message, StringComparison.Ordinal);
-        Assert.Single(ChecksumFile.Parse($"{Sha1}  a.txt\n", ".txt", HashAlgorithmKind.Sha1).Entries); // chosen by the caller
+        Assert.Single(ChecksumFile.Parse(line, ".txt", HashAlgorithmKind.Md5).Entries); // chosen by the caller
+    }
+
+    [Theory]
+    [InlineData("SHA256SUMS", HashAlgorithmKind.Sha256)]
+    [InlineData("MD5SUMS.txt", HashAlgorithmKind.Md5)]
+    public void Parse_SumsNames_GiveTheAlgorithm(string name, HashAlgorithmKind expected)
+    {
+        var hash = new string('a', ChecksumFile.HexLength(expected));
+
+        Assert.Equal(expected, ChecksumFile.Parse($"{hash}  a.txt\n", name).Algorithm);
+    }
+
+    [Theory]
+    [InlineData(40, HashAlgorithmKind.Sha1)]
+    [InlineData(64, HashAlgorithmKind.Sha256)]
+    public void Parse_AnyName_TheLengthTellsTheAlgorithm(int length, HashAlgorithmKind expected)
+    {
+        Assert.Equal(expected, ChecksumFile.Parse($"{new string('0', length)}  a.txt\n", "checksums.txt").Algorithm);
+    }
+
+    [Fact]
+    public void Parse_XxhsumPrefix_IsRemoved()
+    {
+        var entry = Assert.Single(ChecksumFile.Parse("XXH3_0123456789abcdef  a.bin\n", ".xxh3").Entries);
+
+        Assert.Equal(new ChecksumEntry("a.bin", "0123456789abcdef"), entry);
+    }
+
+    [Fact]
+    public void Sfv_NameStartingWithHash_IsNotAComment()
+    {
+        var entries = new[] { new ChecksumEntry("#notes.txt", "cbf43926") };
+
+        Assert.Equal(entries, ChecksumFile.Parse(ChecksumFile.Format(HashAlgorithmKind.Crc32, entries), ".sfv").Entries);
+    }
+
+    [Fact]
+    public void Read_ListNotInUtf8_IsReadAsLatin1()
+    {
+        var path = _temp.Combine("old.md5");
+        File.WriteAllBytes(path, [.. Encoding.ASCII.GetBytes(new string('0', 32) + " *caff"), 0xE8, (byte)'\n']); // "caffè" in Windows-1252
+
+        Assert.Equal("caff\u00e8", Assert.Single(ChecksumFile.Read(path).Entries).Path);
+    }
+
+    [Fact]
+    public async Task Check_FindsFilesOfListsMadeOnWindowsAndOnMacs()
+    {
+        // A list made on Windows (backslashes) and one with decomposed names (as on macOS) where the disk has composed ones
+        _temp.CreateFile("Photos/sub/ok.txt", text: "hello\n");
+        _temp.CreateFile("Photos/caf\u00e9.txt", text: "hello\n");
+        var listPath = _temp.Combine("list.sha256");
+        File.WriteAllText(listPath, $"{Sha256OfHello} *Photos\\sub\\ok.txt\n{Sha256OfHello}  Photos/cafe\u0301.txt\n");
+
+        var result = await new ChecksumCheckJob(listPath).RunAsync(cancellationToken: Token);
+
+        Assert.All(result.Files, f => Assert.Equal(FileCopyStatus.Succeeded, f.Status));
+        Assert.Equal(2, result.Files.Count);
     }
 
     [Fact]

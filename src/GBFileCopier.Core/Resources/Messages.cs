@@ -66,7 +66,7 @@ public static class Messages
     /// <summary>Cannot flush the file to disk</summary>
     public static string CannotFlushToDisk => Get();
 
-    /// <summary>The checksum algorithm is unknown: name the file .sha256, .md5, .sfv… or choose the algorithm</summary>
+    /// <summary>The checksum algorithm is unknown: name the file .sha256, .md5, .sfv…</summary>
     public static string ChecksumFileUnknownAlgorithm => Get();
 
     /// <summary>The file contains no {0} checksums</summary>

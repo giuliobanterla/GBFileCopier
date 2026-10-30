@@ -240,8 +240,7 @@ public sealed class CopyJob : IFileJob
         string? checksumFile = null;
         if (Options.WriteChecksumFile && cancelled == 0 && all.TrueForAll(r => r.Status != FileCopyStatus.Failed))
         {
-            tracker.Finish();
-            checksumFile = await WriteChecksumFileAsync(fileResults, cancellationToken);
+            checksumFile = await WriteChecksumFileAsync(fileResults, tracker, cancellationToken);
         }
 
         tracker.Finish();
@@ -253,13 +252,15 @@ public sealed class CopyJob : IFileJob
     /// Photos, "IMG.jpg.sha256" for a single file, "checksums.sha256" for several sources; a free name
     /// if it exists. The paths in it are relative to the destination folder. Problems become the job's warning.
     /// </summary>
-    private async Task<string?> WriteChecksumFileAsync(FileCopyResult?[] fileResults, CancellationToken cancellationToken)
+    private async Task<string?> WriteChecksumFileAsync(FileCopyResult?[] fileResults, ProgressTracker tracker, CancellationToken cancellationToken)
     {
         var algorithm = Options.EffectiveHashAlgorithm;
         var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Request.Destination));
         string? target = null;
         try
         {
+            // Moved by a rename on the same volume: the data was never read, so it is hashed now, with progress
+            tracker.AddToTotal(fileResults.Where(r => r is { Status: FileCopyStatus.Succeeded, Kind: CopyItemKind.File, Hash: null }).Sum(r => r!.Length));
             var entries = new List<ChecksumEntry>();
             for (var slot = 0; slot < fileResults.Length; slot++)
             {
@@ -268,9 +269,14 @@ public sealed class CopyJob : IFileJob
                     continue;
                 }
 
-                // Moved by a rename on the same volume: the data was never read, so it is hashed now
-                var hash = result.Hash ?? StreamingHasher.ToHex(
-                    await FilePipeline.HashFileAsync(result.DestinationPath, algorithm, Options.BufferSize, _platform, _pause, _ => { }, cancellationToken));
+                var hash = result.Hash;
+                if (hash is null)
+                {
+                    tracker.StartFile(result.DestinationPath, CopyPhase.Verifying);
+                    hash = StreamingHasher.ToHex(await FilePipeline.HashFileAsync(
+                        result.DestinationPath, algorithm, Options.BufferSize, _platform, _pause, tracker.AddBytes, cancellationToken));
+                }
+
                 entries.Add(new ChecksumEntry(Path.GetRelativePath(root, result.DestinationPath).Replace(Path.DirectorySeparatorChar, '/'), hash));
             }
 
@@ -296,7 +302,11 @@ public sealed class CopyJob : IFileJob
                 {
                     var bytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(ChecksumFile.Format(algorithm, entries));
                     await stream.WriteAsync(bytes, cancellationToken);
-                    stream.Flush(flushToDisk: Options.FlushToDisk);
+                    await stream.FlushAsync(cancellationToken);
+                    if (FlushesEachFile)
+                    {
+                        _platform.FlushToDisk(stream.SafeFileHandle);
+                    }
                 }
 
                 File.Move(temp, target);

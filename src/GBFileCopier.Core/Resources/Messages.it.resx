@@ -56,7 +56,7 @@
     <value>Impossibile scrivere il file su disco</value>
   </data>
   <data name="ChecksumFileUnknownAlgorithm" xml:space="preserve">
-    <value>L'algoritmo di checksum non è noto: dai al file l'estensione .sha256, .md5, .sfv… oppure scegli l'algoritmo</value>
+    <value>L'algoritmo di checksum non è noto: dai al file l'estensione .sha256, .md5, .sfv…</value>
   </data>
   <data name="ChecksumFileEmpty" xml:space="preserve">
     <value>Il file non contiene checksum {0}</value>
