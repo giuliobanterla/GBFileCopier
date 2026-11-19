@@ -65,7 +65,8 @@ jobs:
         with:
           # An exact SDK, not "the latest 10.0" from global.json: on 2026-10-25 that pointed to a
           # 10.0.403 whose files were not published yet, and every build failed. Raise it on purpose.
-          dotnet-version: 10.0.402
+          # 10.0.404 (runtime 10.0.15) fixes GHSA-p3jp-9v83-76w9, which NuGet audit reports as NU1903 on 10.0.402.
+          dotnet-version: 10.0.404
 
       - name: Import the Developer ID certificate
         if: env.MACOS_CERTIFICATE != ''
@@ -110,7 +111,8 @@ jobs:
         with:
           # An exact SDK, not "the latest 10.0" from global.json: on 2026-10-25 that pointed to a
           # 10.0.403 whose files were not published yet, and every build failed. Raise it on purpose.
-          dotnet-version: 10.0.402
+          # 10.0.404 (runtime 10.0.15) fixes GHSA-p3jp-9v83-76w9, which NuGet audit reports as NU1903 on 10.0.402.
+          dotnet-version: 10.0.404
 
       # Signing with SignPath (see packaging/windows/signpath): only when the repository is configured for
       # it, and never on pull requests. Tags use the release certificate, manual runs the test one.
