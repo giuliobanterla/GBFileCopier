@@ -47,6 +47,9 @@ runs, Windows and arm64 paths are verified only by CI. Keep platform code behind
 `OperatingSystem.IsWindows()` / `IsMacOS()` and think through both branches.
 Before opening a PR that touches platform code, interop, paths or AOT-sensitive code, run the
 `cross-platform-reviewer` subagent (`.claude/agents/cross-platform-reviewer.md`).
+Before every push of a branch and before a release, run the `secrets-reviewer` subagent
+(`.claude/agents/secrets-reviewer.md`): this repository is public, so tokens, private addresses and
+personal data must not reach a commit.
 
 ## Localization
 
