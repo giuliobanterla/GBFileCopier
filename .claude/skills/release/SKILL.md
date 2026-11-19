@@ -23,6 +23,9 @@ Answer in the language the maintainer uses.
   release: list them with `gh pr list` and ask if unsure.
 - Show what goes in the release: `git log --oneline <latest tag>..origin/main`. Summarize it in a
   few lines for the maintainer.
+- Run `/code-review` on that range (`<latest tag>..origin/main`) and `/security-review` if it touches
+  packaging, signing, the updater or file-system code. Report the findings to the maintainer; do not
+  start the bump PR while a confirmed bug is open unless the maintainer says to go on.
 
 ## 1. Version bump PR
 
