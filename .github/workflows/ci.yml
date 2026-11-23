@@ -45,7 +45,7 @@ jobs:
           fetch-depth: 0 # full history, so the version includes the right commit
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           # An exact SDK, not "the latest 10.0" from global.json: on 2026-10-25 that pointed to a
           # 10.0.403 whose files were not published yet, and every build failed. Raise it on purpose.

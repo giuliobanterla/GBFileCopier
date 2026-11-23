@@ -61,7 +61,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           # An exact SDK, not "the latest 10.0" from global.json: on 2026-10-25 that pointed to a
           # 10.0.403 whose files were not published yet, and every build failed. Raise it on purpose.
@@ -107,7 +107,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           # An exact SDK, not "the latest 10.0" from global.json: on 2026-10-25 that pointed to a
           # 10.0.403 whose files were not published yet, and every build failed. Raise it on purpose.
@@ -148,7 +148,7 @@ jobs:
 
       - name: Sign the program files
         if: steps.signing.outputs.enabled == 'true'
-        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        uses: signpath/github-action-submit-signing-request@4a84eb4ad763290f059275786f2deed97c2c672b # v3.1
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -175,7 +175,7 @@ jobs:
 
       - name: Sign the installer
         if: steps.signing.outputs.enabled == 'true'
-        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        uses: signpath/github-action-submit-signing-request@4a84eb4ad763290f059275786f2deed97c2c672b # v3.1
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
